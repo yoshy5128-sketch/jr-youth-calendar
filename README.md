@@ -6,7 +6,7 @@
 ## Worker URL
 https://jr-youth-calendar-api.yoshy55.workers.dev
 
-## GitHub Pagesへの設置
+## GitHub Pagesへの設置　
 1. GitHubで新しい公開リポジトリを作成します。
 2. このフォルダ内のファイルをすべてアップロードします。
 3. リポジトリの Settings → Pages を開きます。
