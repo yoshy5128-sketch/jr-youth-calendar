@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0b65d8">
+  <title>Jrユース・スケジュール</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <h1>Jrユース・スケジュール</h1>
+      <p>予定表画像から「男」の予定だけを抽出します</p>
+    </div>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>1. 予定表画像を選択</h2>
+
+      <label class="field">
+        <span>予定表の年</span>
+        <input id="yearInput" type="number" min="2020" max="2100">
+      </label>
+
+      <label class="file-button">
+        <input id="imageInput" type="file" accept="image/*" capture="environment">
+        <span>画像を撮影・選択</span>
+      </label>
+
+      <div id="previewArea" class="preview-area hidden">
+        <img id="previewImage" alt="選択した予定表画像">
+        <div id="fileInfo" class="file-info"></div>
+      </div>
+
+      <button id="analyzeButton" class="primary-button" disabled>
+        画像を解析する
+      </button>
+
+      <p class="notice">
+        画像は解析のためCloudflare Workerを経由してGemini APIへ送信されます。
+      </p>
+    </section>
+
+    <section id="statusCard" class="card hidden">
+      <h2>処理状況</h2>
+      <div id="statusMessage" class="status-message"></div>
+    </section>
+
+    <section id="resultCard" class="card hidden">
+      <div class="result-header">
+        <div>
+          <h2>2. 読み取り結果</h2>
+          <p id="resultSummary"></p>
+        </div>
+        <button id="clearButton" class="secondary-button">クリア</button>
+      </div>
+
+      <div id="eventList" class="event-list"></div>
+    </section>
+  </main>
+
+  <template id="eventTemplate">
+    <article class="event-card">
+      <div class="event-date"></div>
+      <div class="event-time"></div>
+      <div class="event-location"></div>
+      <dl>
+        <div><dt>枠</dt><dd class="event-team"></dd></div>
+        <div><dt>区分</dt><dd class="event-category"></dd></div>
+        <div><dt>鍵・開</dt><dd class="event-open"></dd></div>
+        <div><dt>鍵・閉</dt><dd class="event-close"></dd></div>
+        <div><dt>備考</dt><dd class="event-notes"></dd></div>
+        <div><dt>読取信頼度</dt><dd class="event-confidence"></dd></div>
+      </dl>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>

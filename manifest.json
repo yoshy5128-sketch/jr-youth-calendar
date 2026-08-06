@@ -1,0 +1,9 @@
+{
+  "name": "Jrユース・スケジュール",
+  "short_name": "Jr予定",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#eef3f8",
+  "theme_color": "#0b65d8",
+  "lang": "ja"
+}
