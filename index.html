@@ -9,75 +9,83 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="app-header">
-    <div>
-      <h1>Jrユース・スケジュール</h1>
-      <p>予定表画像から「男」の予定だけを抽出します</p>
+<header class="app-header">
+  <h1>Jrユース・スケジュール</h1>
+  <p>予定表画像から「男」の予定だけを抽出し、ICSファイルを作成します</p>
+</header>
+<main>
+  <section class="card">
+    <h2>1. 予定表画像を選択</h2>
+    <label class="field"><span>予定表の年</span><input id="yearInput" type="number" min="2020" max="2100"></label>
+    <label class="file-button"><input id="imageInput" type="file" accept="image/*" capture="environment"><span>画像を撮影・選択</span></label>
+    <div id="previewArea" class="preview-area hidden"><img id="previewImage" alt="選択した予定表画像"><div id="fileInfo" class="file-info"></div></div>
+    <button id="analyzeButton" class="primary-button" disabled>画像を解析する</button>
+    <p class="notice">画像は解析のためCloudflare Workerを経由してGemini APIへ送信されます。GitHubには保存しません。</p>
+  </section>
+
+  <section id="statusCard" class="card hidden">
+    <h2>処理状況</h2><div id="statusMessage" class="status-message"></div>
+  </section>
+
+  <section id="resultCard" class="card hidden">
+    <div class="result-header">
+      <div><h2>2. 読み取り結果を確認</h2><p id="resultSummary"></p></div>
+      <button id="clearButton" class="secondary-button">クリア</button>
     </div>
-  </header>
+    <div id="duplicateWarning" class="warning-box hidden"></div>
+    <div class="toolbar">
+      <button id="selectAllButton" class="secondary-button">全件選択</button>
+      <button id="deselectAllButton" class="secondary-button">全件解除</button>
+    </div>
+    <div id="eventList" class="event-list"></div>
+  </section>
 
-  <main>
-    <section class="card">
-      <h2>1. 予定表画像を選択</h2>
+  <section id="exportCard" class="card hidden">
+    <h2>3. カレンダー用ファイルを作成</h2>
+    <label class="field"><span>予定タイトル</span><input id="calendarTitleInput" type="text" value="Jrユース・スケジュール"></label>
+    <label class="field"><span>通知</span>
+      <select id="reminderSelect">
+        <option value="none">通知なし</option><option value="10">10分前</option>
+        <option value="30">30分前</option><option value="60" selected>1時間前</option>
+        <option value="120">2時間前</option><option value="1440">1日前</option>
+      </select>
+    </label>
+    <label class="check-row"><input id="includeSourceNote" type="checkbox" checked><span>説明欄に「予定表画像から自動作成」を記載</span></label>
+    <button id="downloadIcsButton" class="primary-button" disabled>選択した予定をICSファイルにする</button>
+    <div id="exportMessage" class="export-message hidden"></div>
+    <details class="help-box">
+      <summary>Googleカレンダーへの取り込み方法</summary>
+      <p><strong>PC：</strong>Googleカレンダーの「設定」→「インポート／エクスポート」→「インポート」からICSファイルを選択します。</p>
+      <p><strong>スマホ：</strong>ICSファイルを開き、表示されるカレンダー追加画面を使います。複数件の確実な一括登録はPC版Googleカレンダーが適しています。</p>
+    </details>
+  </section>
+</main>
 
-      <label class="field">
-        <span>予定表の年</span>
-        <input id="yearInput" type="number" min="2020" max="2100">
-      </label>
-
-      <label class="file-button">
-        <input id="imageInput" type="file" accept="image/*" capture="environment">
-        <span>画像を撮影・選択</span>
-      </label>
-
-      <div id="previewArea" class="preview-area hidden">
-        <img id="previewImage" alt="選択した予定表画像">
-        <div id="fileInfo" class="file-info"></div>
-      </div>
-
-      <button id="analyzeButton" class="primary-button" disabled>
-        画像を解析する
-      </button>
-
-      <p class="notice">
-        画像は解析のためCloudflare Workerを経由してGemini APIへ送信されます。
-      </p>
-    </section>
-
-    <section id="statusCard" class="card hidden">
-      <h2>処理状況</h2>
-      <div id="statusMessage" class="status-message"></div>
-    </section>
-
-    <section id="resultCard" class="card hidden">
-      <div class="result-header">
-        <div>
-          <h2>2. 読み取り結果</h2>
-          <p id="resultSummary"></p>
-        </div>
-        <button id="clearButton" class="secondary-button">クリア</button>
-      </div>
-
-      <div id="eventList" class="event-list"></div>
-    </section>
-  </main>
-
-  <template id="eventTemplate">
-    <article class="event-card">
-      <div class="event-date"></div>
-      <div class="event-time"></div>
-      <div class="event-location"></div>
-      <dl>
-        <div><dt>枠</dt><dd class="event-team"></dd></div>
-        <div><dt>区分</dt><dd class="event-category"></dd></div>
-        <div><dt>鍵・開</dt><dd class="event-open"></dd></div>
-        <div><dt>鍵・閉</dt><dd class="event-close"></dd></div>
-        <div><dt>備考</dt><dd class="event-notes"></dd></div>
-        <div><dt>読取信頼度</dt><dd class="event-confidence"></dd></div>
-      </dl>
-    </article>
-  </template>
-
-  <script src="app.js"></script>
+<template id="eventTemplate">
+  <article class="event-card">
+    <div class="event-top">
+      <label class="event-select"><input class="event-enabled" type="checkbox" checked><span>この予定を出力</span></label>
+      <span class="duplicate-badge hidden">重複候補</span>
+    </div>
+    <div class="grid-two">
+      <label class="field compact"><span>日付</span><input class="event-date" type="date"></label>
+      <label class="check-row all-day-row"><input class="event-all-day" type="checkbox"><span>終日予定</span></label>
+    </div>
+    <div class="grid-two time-grid">
+      <label class="field compact"><span>開始時刻</span><input class="event-start" type="time"></label>
+      <label class="field compact"><span>終了時刻</span><input class="event-end" type="time"></label>
+    </div>
+    <div class="time-warning hidden">時刻が不明です。時刻を入力するか「終日予定」を選んでください。</div>
+    <label class="field compact"><span>場所</span><input class="event-location" type="text"></label>
+    <label class="field compact"><span>枠・チーム</span><input class="event-team" type="text"></label>
+    <div class="grid-two">
+      <label class="field compact"><span>鍵当番・開</span><input class="event-open" type="text"></label>
+      <label class="field compact"><span>鍵当番・閉</span><input class="event-close" type="text"></label>
+    </div>
+    <label class="field compact"><span>備考</span><textarea class="event-notes" rows="2"></textarea></label>
+    <div class="confidence-row">読取信頼度：<strong class="event-confidence">―</strong></div>
+  </article>
+</template>
+<script src="app.js"></script>
 </body>
 </html>
