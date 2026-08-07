@@ -1,67 +1,46 @@
-Jrユース・スケジュール v5 完全版
+Jrユース・スケジュール v6 完全版
 ===================================
 
-【GitHubへ置くファイル】
-index.html
-style.css
-app.js
-manifest.json
-service-worker.js
-.github/workflows/deploy.yml
+今回の修正:
+Googleカレンダー画面が GMT+00 になっている環境でも、
+予定表に書かれた時刻をそのまま表示させる方式へ変更しました。
 
-【Cloudflare Worker】
-worker.js
+例:
+予定表 14:00～18:00
+ICS:
+DTSTART:20260808T140000
+DTEND:20260808T180000
 
-【今回の重要修正】
+Z（UTC指定）も TZID=Asia/Tokyo も付けません。
+これを「floating time（固定時刻）」として扱います。
 
-1. 時刻あり予定
-   日本時間(JST)をUTCへ明示的に変換してICSへ保存します。
+これにより、
+14:00～18:00 → 05:00～09:00
+のような変換を防ぎます。
 
-   例:
-   2026/08/08 14:00 JST
-   → ICS内部 20260808T050000Z
+時刻未定:
+終日予定として登録されます。
+一括で終日化した予定は
+【時間未定】Jrユース・スケジュール
+というタイトルになります。
 
-   Googleカレンダー等で日本時間表示すると14:00になります。
+GitHubへ上書き:
+- index.html
+- style.css
+- app.js
+- manifest.json
+- service-worker.js
+- .github/workflows/deploy.yml
 
-2. 時刻未定予定
-   終日予定として登録します。
+Cloudflare:
+- worker.js
+  読み取りロジック自体はv5と同等です。
+  version表示のみ v6-floating-time に更新しています。
 
-3. 一括終日化した予定
-   タイトルに
-   【時間未定】Jrユース・スケジュール
-   と表示します。
+更新後はGitHub Actionsが成功したことを確認し、
+公開ページを Ctrl+F5 または ?v=6 で開いてください。
 
-4. 同日の通常時刻予定には影響しません。
-
-5. Service Workerキャッシュ
-   v5へ更新しているため、以前のapp.jsが残りにくくしています。
-
-6. Worker
-   「男」「男子」「男性」などをすべて「男」に統一して扱います。
-
-
-【更新手順】
-
-A. GitHub
-   index.html
-   style.css
-   app.js
-   manifest.json
-   service-worker.js
-   .github/workflows/deploy.yml
-   を上書きしてCommit。
-
-B. Cloudflare
-   worker.jsをWorkers & Pagesの
-   jr-youth-calendar-api → Edit code
-   に丸ごと貼り替えてDeploy。
-
-C. Worker確認
-   Worker URLを直接開き、
-   version が
-   v5-timezone-safe
-   になっていれば更新済みです。
-
-D. Pages確認
-   GitHub Actionsが緑になったら
-   公開ページをCtrl+F5、または ?v=5 を付けて開いてください。
+重要:
+すでにGoogleカレンダーへインポート済みの誤った予定は、
+新しいICSを再インポートしても自動修正されません。
+いったん誤った予定を削除してから、v6で作成したICSを再インポートしてください。

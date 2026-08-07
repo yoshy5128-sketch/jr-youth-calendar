@@ -561,16 +561,15 @@ function detectDuplicates() {
   ==========================================================
 
   重要:
-  時刻あり予定は、日本時間(JST/UTC+9)を明示的にUTCへ変換して
-  Z形式で保存する。
+  時刻あり予定は「固定時刻（floating time）」で保存する。
 
   例:
-  2026-08-08 14:00 JST
+  2026-08-08 14:00
   ↓
-  20260808T050000Z
+  DTSTART:20260808T140000
 
-  これにより取り込み側がTZIDを誤解して
-  時刻がずれる問題を避ける。
+  ZもTZIDも付けないため、Googleカレンダー側がGMT+00表示でも
+  予定表に書かれた14:00を14:00として取り込む。
 */
 function buildIcs(
   events,
@@ -647,15 +646,17 @@ function buildIcs(
       );
     } else {
       /*
-        JSTからUTCへ変換したZ形式。
-        ブラウザ・端末のローカルタイムゾーンには依存しない。
+        固定時刻（floating time）として保存する。
+        ZもTZIDも付けないことで、予定表に書かれた
+        14:00はカレンダー側のタイムゾーン設定に関係なく
+        14:00として取り込ませる。
       */
       lines.push(
-        `DTSTART:${jstDateTimeToUtcIcs(event.date, event.startTime)}`
+        `DTSTART:${formatFloatingDateTime(event.date, event.startTime)}`
       );
 
       lines.push(
-        `DTEND:${jstDateTimeToUtcIcs(event.date, event.endTime)}`
+        `DTEND:${formatFloatingDateTime(event.date, event.endTime)}`
       );
     }
 
@@ -697,35 +698,17 @@ function buildIcs(
   JST (UTC+9) をUTCへ変換する。
   PCが日本以外のタイムゾーンでも結果は同じ。
 */
-function jstDateTimeToUtcIcs(
+function formatFloatingDateTime(
   dateString,
   timeString
 ) {
-  const [year, month, day] =
-    dateString.split("-").map(Number);
-
-  const [hour, minute] =
-    timeString.split(":").map(Number);
-
-  /*
-    JST = UTC + 9
-    したがってUTC時刻 = JST時刻 - 9時間
-  */
-  const utcMillis =
-    Date.UTC(
-      year,
-      month - 1,
-      day,
-      hour - 9,
-      minute,
-      0
-    );
-
-  return formatUtcDate(
-    new Date(utcMillis)
+  return (
+    dateString.replaceAll("-", "") +
+    "T" +
+    timeString.replace(":", "") +
+    "00"
   );
 }
-
 
 function createUid(event) {
   const raw = [
