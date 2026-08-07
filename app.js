@@ -211,7 +211,7 @@ bulkAllDayButton.addEventListener("click", () => {
 });
 
 
-downloadIcsButton.addEventListener("click", () => {
+downloadIcsButton.addEventListener("click", async () => {
   hideExportMessage();
 
   const cards = [...document.querySelectorAll(".event-card")];
@@ -265,15 +265,35 @@ downloadIcsButton.addEventListener("click", () => {
       includeSourceNote.checked
     );
 
-  downloadTextFile(
-    ics,
-    `${safeFileName(title)}.ics`,
-    "text/calendar;charset=utf-8"
-  );
+  try {
+    const result = await downloadTextFile(
+      ics,
+      `${safeFileName(title)}.ics`,
+      "text/calendar;charset=utf-8"
+    );
 
-  showExportMessage(
-    `${selected.length}件の予定をICSファイルにまとめました。`
-  );
+    if (result === "shared") {
+      showExportMessage(
+        `${selected.length}件の予定をICSファイルにまとめました。` +
+        " iPhone/iPadでは共有画面から「“ファイル”に保存」を選んでください。"
+      );
+    } else if (result === "cancelled") {
+      showExportMessage(
+        "ICSファイルの共有をキャンセルしました。"
+      );
+    } else {
+      showExportMessage(
+        `${selected.length}件の予定をICSファイルにまとめました。`
+      );
+    }
+  } catch (error) {
+    console.error(error);
+
+    showExportMessage(
+      "ICSファイルを出力できませんでした。もう一度お試しください。",
+      true
+    );
+  }
 });
 
 
@@ -837,36 +857,140 @@ function addDays(dateString, days) {
 }
 
 
-function downloadTextFile(
+function isIOSDevice() {
+  const userAgent =
+    navigator.userAgent || "";
+
+  const platform =
+    navigator.platform || "";
+
+  /*
+    iPhone / iPad / iPod。
+    iPadOSはデスクトップ表示時にMacIntelになる場合があるため
+    touch pointsも確認する。
+  */
+  return (
+    /iPhone|iPad|iPod/i.test(userAgent) ||
+    (
+      platform === "MacIntel" &&
+      navigator.maxTouchPoints > 1
+    )
+  );
+}
+
+
+async function downloadTextFile(
   text,
   fileName,
   mimeType
 ) {
+  /*
+    iPhone / iPadだけはSafari/PWAの<a download>に頼らず、
+    iOS標準の共有シートへICSファイルを渡す。
+
+    PC / Androidは従来どおり直接ダウンロード。
+  */
+  if (
+    isIOSDevice() &&
+    typeof navigator.share === "function"
+  ) {
+    const file =
+      new File(
+        [text],
+        fileName,
+        {
+          type:
+            mimeType ||
+            "text/calendar"
+        }
+      );
+
+    const shareData = {
+      files: [file],
+      title: fileName
+    };
+
+    const canShareFiles =
+      typeof navigator.canShare !== "function" ||
+      navigator.canShare(shareData);
+
+    if (canShareFiles) {
+      try {
+        await navigator.share(
+          shareData
+        );
+
+        return "shared";
+      } catch (error) {
+        /*
+          ユーザーが共有画面を閉じただけならエラー扱いにしない。
+        */
+        if (
+          error &&
+          error.name ===
+            "AbortError"
+        ) {
+          return "cancelled";
+        }
+
+        console.warn(
+          "iOS share failed. Falling back to normal download.",
+          error
+        );
+      }
+    }
+  }
+
+  /*
+    PC / Android、
+    またはiOS共有が利用できなかった場合のフォールバック。
+  */
   const blob =
     new Blob(
       [text],
-      { type: mimeType }
+      {
+        type:
+          mimeType ||
+          "text/calendar;charset=utf-8"
+      }
     );
 
   const url =
-    URL.createObjectURL(blob);
+    URL.createObjectURL(
+      blob
+    );
 
   const anchor =
-    document.createElement("a");
+    document.createElement(
+      "a"
+    );
 
-  anchor.href = url;
-  anchor.download = fileName;
+  anchor.href =
+    url;
 
-  document.body.appendChild(anchor);
+  anchor.download =
+    fileName;
+
+  anchor.rel =
+    "noopener";
+
+  document.body.appendChild(
+    anchor
+  );
+
   anchor.click();
   anchor.remove();
 
   setTimeout(
-    () => URL.revokeObjectURL(url),
-    1000
+    () =>
+      URL.revokeObjectURL(
+        url
+      ),
+    3000
   );
-}
 
+  return "downloaded";
+}
 
 function safeFileName(value) {
   return (
