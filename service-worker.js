@@ -1,4 +1,4 @@
-const CACHE_NAME = "jr-youth-calendar-v6";
+const CACHE_NAME = "jr-youth-calendar-v7";
 
 const ASSETS = [
   "./",
