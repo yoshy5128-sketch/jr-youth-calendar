@@ -1,4 +1,4 @@
-Jrユース・スケジュール v4 完全版
+Jrユース・スケジュール v5 完全版
 ===================================
 
 【GitHubへ置くファイル】
@@ -7,52 +7,61 @@ style.css
 app.js
 manifest.json
 service-worker.js
-
-上記5ファイルを、GitHubの jr-youth-calendar リポジトリ直下へ上書きしてください。
-
-現在GitHub Actions方式でPages公開している場合、
-Commit changes後に自動デプロイされます。
-
+.github/workflows/deploy.yml
 
 【Cloudflare Worker】
 worker.js
 
-Cloudflare
-Workers & Pages
-→ jr-youth-calendar-api
-→ Edit code
+【今回の重要修正】
 
-現在のコードをすべて削除して worker.js の内容を貼り付け、
-Deployしてください。
+1. 時刻あり予定
+   日本時間(JST)をUTCへ明示的に変換してICSへ保存します。
 
+   例:
+   2026/08/08 14:00 JST
+   → ICS内部 20260808T050000Z
 
-【主な変更点】
+   Googleカレンダー等で日本時間表示すると14:00になります。
 
-1. スマホでカメラを自動起動しない
-   保存済み画像ファイルを選択する方式のみ。
+2. 時刻未定予定
+   終日予定として登録します。
 
-2. 読み取り厳格化
-   1回目：男女を問わず表の全行を上から下まで抽出。
-   2回目：第1結果を見せず、独立してもう一度全行抽出。
-   2回の結果をプログラムで統合してから「男」だけ残します。
+3. 一括終日化した予定
+   タイトルに
+   【時間未定】Jrユース・スケジュール
+   と表示します。
 
-3. 読み取り監査表示
-   2回の解析が一致したか、差異があったかを結果画面に表示します。
+4. 同日の通常時刻予定には影響しません。
 
-4. 時刻不明一括終日化
-   ICS作成時に
-   「未入力または時刻不明の予定が○件あります」
-   が出た場合、その下に
-   「すべての未記入及び時刻不明予定に終日予定にチェックを入れる」
-   ボタンが表示されます。
+5. Service Workerキャッシュ
+   v5へ更新しているため、以前のapp.jsが残りにくくしています。
 
-5. Gemini混雑対策
-   一時的な408 / 429 / 5xxエラー時は自動再試行します。
-   gemini-2.5-flashで失敗が続く場合は
-   gemini-2.5-flash-liteも試します。
+6. Worker
+   「男」「男子」「男性」などをすべて「男」に統一して扱います。
 
 
-【注意】
-AI画像解析のため、100%の読み取り保証はできません。
-今回の版では読み取りを2回独立実行して統合することで、
-1回のみの場合より取りこぼしを減らす設計にしています。
+【更新手順】
+
+A. GitHub
+   index.html
+   style.css
+   app.js
+   manifest.json
+   service-worker.js
+   .github/workflows/deploy.yml
+   を上書きしてCommit。
+
+B. Cloudflare
+   worker.jsをWorkers & Pagesの
+   jr-youth-calendar-api → Edit code
+   に丸ごと貼り替えてDeploy。
+
+C. Worker確認
+   Worker URLを直接開き、
+   version が
+   v5-timezone-safe
+   になっていれば更新済みです。
+
+D. Pages確認
+   GitHub Actionsが緑になったら
+   公開ページをCtrl+F5、または ?v=5 を付けて開いてください。

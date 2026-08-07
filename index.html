@@ -27,12 +27,7 @@
 
     <label class="field">
       <span>予定表の年</span>
-      <input
-        id="yearInput"
-        type="number"
-        min="2020"
-        max="2100"
-      >
+      <input id="yearInput" type="number" min="2020" max="2100">
     </label>
 
     <label class="file-button">
@@ -44,25 +39,12 @@
       <span>画像ファイルを選択</span>
     </label>
 
-    <div
-      id="previewArea"
-      class="preview-area hidden"
-    >
-      <img
-        id="previewImage"
-        alt="選択した予定表画像"
-      >
-      <div
-        id="fileInfo"
-        class="file-info"
-      ></div>
+    <div id="previewArea" class="preview-area hidden">
+      <img id="previewImage" alt="選択した予定表画像">
+      <div id="fileInfo" class="file-info"></div>
     </div>
 
-    <button
-      id="analyzeButton"
-      class="primary-button"
-      disabled
-    >
+    <button id="analyzeButton" class="primary-button" disabled type="button">
       画像を解析する
     </button>
 
@@ -73,82 +55,46 @@
   </section>
 
 
-  <section
-    id="statusCard"
-    class="card hidden"
-  >
+  <section id="statusCard" class="card hidden">
     <h2>処理状況</h2>
-
-    <div
-      id="statusMessage"
-      class="status-message"
-    ></div>
+    <div id="statusMessage" class="status-message"></div>
   </section>
 
 
-  <section
-    id="resultCard"
-    class="card hidden"
-  >
+  <section id="resultCard" class="card hidden">
     <div class="result-header">
       <div>
         <h2>2. 読み取り結果を確認</h2>
         <p id="resultSummary"></p>
       </div>
 
-      <button
-        id="clearButton"
-        class="secondary-button"
-        type="button"
-      >
+      <button id="clearButton" class="secondary-button" type="button">
         クリア
       </button>
     </div>
 
-    <div
-      id="auditWarning"
-      class="audit-box hidden"
-    ></div>
-
-    <div
-      id="duplicateWarning"
-      class="warning-box hidden"
-    ></div>
+    <div id="auditWarning" class="audit-box hidden"></div>
+    <div id="duplicateWarning" class="warning-box hidden"></div>
 
     <div class="toolbar">
-      <button
-        id="selectAllButton"
-        class="secondary-button"
-        type="button"
-      >
+      <button id="selectAllButton" class="secondary-button" type="button">
         全件選択
       </button>
 
-      <button
-        id="deselectAllButton"
-        class="secondary-button"
-        type="button"
-      >
+      <button id="deselectAllButton" class="secondary-button" type="button">
         全件解除
       </button>
     </div>
 
-    <div
-      id="eventList"
-      class="event-list"
-    ></div>
+    <div id="eventList" class="event-list"></div>
   </section>
 
 
-  <section
-    id="exportCard"
-    class="card hidden"
-  >
+  <section id="exportCard" class="card hidden">
     <h2>3. カレンダー用ファイルを作成</h2>
 
     <label class="field">
       <span>予定タイトル</span>
-
       <input
         id="calendarTitleInput"
         type="text"
@@ -158,7 +104,6 @@
 
     <label class="field">
       <span>通知</span>
-
       <select id="reminderSelect">
         <option value="none">通知なし</option>
         <option value="10">10分前</option>
@@ -170,27 +115,15 @@
     </label>
 
     <label class="check-row">
-      <input
-        id="includeSourceNote"
-        type="checkbox"
-        checked
-      >
+      <input id="includeSourceNote" type="checkbox" checked>
       <span>説明欄に「予定表画像から自動作成」を記載</span>
     </label>
 
-    <button
-      id="downloadIcsButton"
-      class="primary-button"
-      disabled
-      type="button"
-    >
+    <button id="downloadIcsButton" class="primary-button" disabled type="button">
       選択した予定をICSファイルにする
     </button>
 
-    <div
-      id="exportMessage"
-      class="export-message hidden"
-    ></div>
+    <div id="exportMessage" class="export-message hidden"></div>
 
     <button
       id="bulkAllDayButton"
@@ -211,9 +144,9 @@
       </p>
 
       <p>
-        <strong>スマホ：</strong>
-        ICSファイルを開き、表示されるカレンダー追加画面を利用します。
-        複数件を確実に一括登録する場合はPC版Googleカレンダーからのインポートが適しています。
+        <strong>時刻未定の予定：</strong>
+        終日予定として登録し、タイトル先頭に「【時間未定】」を付けます。
+        同じ日の時刻あり予定には影響しません。
       </p>
     </details>
   </section>
@@ -222,40 +155,25 @@
 
 
 <template id="eventTemplate">
-
-  <article class="event-card">
+  <article class="event-card" data-auto-all-day="false">
 
     <div class="event-top">
       <label class="event-select">
-        <input
-          class="event-enabled"
-          type="checkbox"
-          checked
-        >
+        <input class="event-enabled" type="checkbox" checked>
         <span>この予定を出力</span>
       </label>
 
-      <span
-        class="duplicate-badge hidden"
-      >
-        重複候補
-      </span>
+      <span class="duplicate-badge hidden">重複候補</span>
     </div>
 
     <div class="grid-two">
       <label class="field compact">
         <span>日付</span>
-        <input
-          class="event-date"
-          type="date"
-        >
+        <input class="event-date" type="date">
       </label>
 
       <label class="check-row all-day-row">
-        <input
-          class="event-all-day"
-          type="checkbox"
-        >
+        <input class="event-all-day" type="checkbox">
         <span>終日予定</span>
       </label>
     </div>
@@ -263,18 +181,12 @@
     <div class="grid-two time-grid">
       <label class="field compact">
         <span>開始時刻</span>
-        <input
-          class="event-start"
-          type="time"
-        >
+        <input class="event-start" type="time">
       </label>
 
       <label class="field compact">
         <span>終了時刻</span>
-        <input
-          class="event-end"
-          type="time"
-        >
+        <input class="event-end" type="time">
       </label>
     </div>
 
@@ -284,44 +196,29 @@
 
     <label class="field compact">
       <span>場所</span>
-      <input
-        class="event-location"
-        type="text"
-      >
+      <input class="event-location" type="text">
     </label>
 
     <label class="field compact">
       <span>枠・チーム</span>
-      <input
-        class="event-team"
-        type="text"
-      >
+      <input class="event-team" type="text">
     </label>
 
     <div class="grid-two">
       <label class="field compact">
         <span>鍵当番・開</span>
-        <input
-          class="event-open"
-          type="text"
-        >
+        <input class="event-open" type="text">
       </label>
 
       <label class="field compact">
         <span>鍵当番・閉</span>
-        <input
-          class="event-close"
-          type="text"
-        >
+        <input class="event-close" type="text">
       </label>
     </div>
 
     <label class="field compact">
       <span>備考</span>
-      <textarea
-        class="event-notes"
-        rows="2"
-      ></textarea>
+      <textarea class="event-notes" rows="2"></textarea>
     </label>
 
     <div class="confidence-row">
@@ -330,7 +227,6 @@
     </div>
 
   </article>
-
 </template>
 
 
