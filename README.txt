@@ -1,28 +1,36 @@
-Jrユース・スケジュール v14.1
-ブラウザ内OCR 起動修正版
-==============================================
+Jrユース・スケジュール v15
+OCR 安全起動版
+=========================================
 
-v14の不具合:
-app.js起動時に initializeIOSAppleCalendar() を呼んでいましたが、
-関数本体が欠落していたためJavaScriptがそこで停止していました。
+今回の目的:
+「画像ファイルを選択してもプレビューされない」
+という初期化問題を完全に切り離して確認します。
 
-その結果:
-- 画像を選択してもプレビューされない
-- OCR解析ボタンも有効化されない
-- その他のボタンイベントも登録されない
+変更:
+- 全DOM取得をDOMContentLoaded後へ移動
+- 画像プレビューをURL.createObjectURLからFileReaderへ変更
+- 旧Service Workerを自動解除
+- Cache Storageも自動削除
+- v15ではService Workerを使わない
+- OCRはTesseract.js
+- Gemini APIは一切使用しない
 
-v14.1:
-- initializeIOSAppleCalendar を復元
-- Appleカレンダー関連ヘルパーも復元
-- service-workerキャッシュを v14-1 に更新
-- OCR方式はv14のまま
-- Gemini APIは使用しない
-- Cloudflare Worker変更不要
+正常時:
+1. 画像ファイルを選択
+2. すぐ画像プレビューが表示
+3. 「画像を読み込みました。OCR解析できます。」
+   と表示
+4. 「画像をOCR解析する」ボタンが押せる
+
+この段階まではTesseract.jsのOCR処理を使っていません。
+したがって画像プレビューが出れば、
+ファイル選択とアプリ起動は正常です。
 
 GitHub:
-app.js と service-worker.js を最低限上書き。
-確実に揃えるならZIP一式を上書き。
+ZIP一式を上書きしてください。
 
-公開後:
-?v=14.1
-で開いて確認してください。
+Cloudflare Worker:
+変更不要。
+
+公開ページ:
+?v=15

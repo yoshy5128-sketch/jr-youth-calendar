@@ -4,168 +4,43 @@ const WORKER_URL =
 const DEFAULT_TITLE =
   "Jrユース・スケジュール";
 
-const imageInput = document.getElementById("imageInput");
-const yearInput = document.getElementById("yearInput");
-const previewArea = document.getElementById("previewArea");
-const previewImage = document.getElementById("previewImage");
-const fileInfo = document.getElementById("fileInfo");
-const analyzeButton = document.getElementById("analyzeButton");
-const statusCard = document.getElementById("statusCard");
-const statusMessage = document.getElementById("statusMessage");
-const resultCard = document.getElementById("resultCard");
-const resultSummary = document.getElementById("resultSummary");
-const eventList = document.getElementById("eventList");
-const clearButton = document.getElementById("clearButton");
-const selectAllButton = document.getElementById("selectAllButton");
-const deselectAllButton = document.getElementById("deselectAllButton");
-const eventTemplate = document.getElementById("eventTemplate");
-const duplicateWarning = document.getElementById("duplicateWarning");
-const auditWarning = document.getElementById("auditWarning");
-const exportCard = document.getElementById("exportCard");
-const calendarTitleInput = document.getElementById("calendarTitleInput");
-const reminderSelect = document.getElementById("reminderSelect");
-const includeSourceNote = document.getElementById("includeSourceNote");
-const downloadIcsButton = document.getElementById("downloadIcsButton");
-const exportMessage = document.getElementById("exportMessage");
-const bulkAllDayButton = document.getElementById("bulkAllDayButton");
-
-const iosAppleCalendarSection =
-  document.getElementById("iosAppleCalendarSection");
-
-const appleCalendarButton =
-  document.getElementById("appleCalendarButton");
-
-const appleCalendarMessage =
-  document.getElementById("appleCalendarMessage");
-
-const ocrDiagnostic =
-  document.getElementById("ocrDiagnostic");
-
-const ocrRawText =
-  document.getElementById("ocrRawText");
+let imageInput;
+let yearInput;
+let previewArea;
+let previewImage;
+let fileInfo;
+let analyzeButton;
+let statusCard;
+let statusMessage;
+let resultCard;
+let resultSummary;
+let eventList;
+let clearButton;
+let selectAllButton;
+let deselectAllButton;
+let eventTemplate;
+let duplicateWarning;
+let auditWarning;
+let exportCard;
+let calendarTitleInput;
+let reminderSelect;
+let includeSourceNote;
+let downloadIcsButton;
+let exportMessage;
+let bulkAllDayButton;
+let iosAppleCalendarSection;
+let appleCalendarButton;
+let appleCalendarMessage;
+let ocrDiagnostic;
+let ocrRawText;
 
 let selectedFile = null;
 let sourceDocumentTitle = "";
 let ocrWorker = null;
 
-function isIOSDevice() {
-  const userAgent =
-    navigator.userAgent || "";
-
-  const platform =
-    navigator.platform || "";
-
-  return (
-    /iPhone|iPad|iPod/i.test(userAgent) ||
-    (
-      platform === "MacIntel" &&
-      navigator.maxTouchPoints > 1
-    )
-  );
-}
-
-
-function initializeIOSAppleCalendar() {
-  if (
-    !iosAppleCalendarSection
-  ) {
-    return;
-  }
-
-  if (isIOSDevice()) {
-    iosAppleCalendarSection.classList.remove("hidden");
-  } else {
-    iosAppleCalendarSection.classList.add("hidden");
-  }
-}
-
-
-function showAppleCalendarMessage(
-  message,
-  isError = false
-) {
-  if (
-    !appleCalendarMessage
-  ) {
-    return;
-  }
-
-  appleCalendarMessage.classList.remove("hidden");
-  appleCalendarMessage.textContent = message;
-
-  appleCalendarMessage.classList.toggle(
-    "error",
-    isError
-  );
-}
-
-
-function hideAppleCalendarMessage() {
-  if (
-    !appleCalendarMessage
-  ) {
-    return;
-  }
-
-  appleCalendarMessage.classList.add("hidden");
-  appleCalendarMessage.textContent = "";
-  appleCalendarMessage.classList.remove("error");
-}
-
-
-function openInAppleCalendar(
-  icsText,
-  fileName
-) {
-  const form =
-    document.createElement("form");
-
-  form.method = "POST";
-  form.action =
-    `${WORKER_URL}/apple-calendar`;
-
-  /*
-    iPhone / iPadでは新しいタブを使わず、
-    現在画面でICSレスポンスを開く。
-  */
-  form.target = "_self";
-  form.style.display = "none";
-
-  const icsField =
-    document.createElement("textarea");
-
-  icsField.name = "ics";
-  icsField.value = icsText;
-
-  const nameField =
-    document.createElement("input");
-
-  nameField.type = "hidden";
-  nameField.name = "filename";
-  nameField.value = fileName;
-
-  form.appendChild(icsField);
-  form.appendChild(nameField);
-  document.body.appendChild(form);
-
-  form.submit();
-}
-
-
-yearInput.value = new Date().getFullYear();
-
-initializeIOSAppleCalendar();
-
 
 /*
-  ==========================================================
   OCRの列位置
-  ==========================================================
-
-  今回の予定表レイアウト用の初期値。
-  画像幅に対する割合で列を判定する。
-
-  日程 | 場所 | 枠 | 時間 | 区分 | 鍵開 | 鍵閉
 */
 const COLUMN_RANGES = {
   date:     [0.00, 0.13],
@@ -178,7 +53,189 @@ const COLUMN_RANGES = {
 };
 
 
-imageInput.addEventListener("change", () => {
+document.addEventListener(
+  "DOMContentLoaded",
+  initializeApp
+);
+
+
+function initializeApp() {
+  imageInput =
+    document.getElementById("imageInput");
+
+  yearInput =
+    document.getElementById("yearInput");
+
+  previewArea =
+    document.getElementById("previewArea");
+
+  previewImage =
+    document.getElementById("previewImage");
+
+  fileInfo =
+    document.getElementById("fileInfo");
+
+  analyzeButton =
+    document.getElementById("analyzeButton");
+
+  statusCard =
+    document.getElementById("statusCard");
+
+  statusMessage =
+    document.getElementById("statusMessage");
+
+  resultCard =
+    document.getElementById("resultCard");
+
+  resultSummary =
+    document.getElementById("resultSummary");
+
+  eventList =
+    document.getElementById("eventList");
+
+  clearButton =
+    document.getElementById("clearButton");
+
+  selectAllButton =
+    document.getElementById("selectAllButton");
+
+  deselectAllButton =
+    document.getElementById("deselectAllButton");
+
+  eventTemplate =
+    document.getElementById("eventTemplate");
+
+  duplicateWarning =
+    document.getElementById("duplicateWarning");
+
+  auditWarning =
+    document.getElementById("auditWarning");
+
+  exportCard =
+    document.getElementById("exportCard");
+
+  calendarTitleInput =
+    document.getElementById("calendarTitleInput");
+
+  reminderSelect =
+    document.getElementById("reminderSelect");
+
+  includeSourceNote =
+    document.getElementById("includeSourceNote");
+
+  downloadIcsButton =
+    document.getElementById("downloadIcsButton");
+
+  exportMessage =
+    document.getElementById("exportMessage");
+
+  bulkAllDayButton =
+    document.getElementById("bulkAllDayButton");
+
+  iosAppleCalendarSection =
+    document.getElementById("iosAppleCalendarSection");
+
+  appleCalendarButton =
+    document.getElementById("appleCalendarButton");
+
+  appleCalendarMessage =
+    document.getElementById("appleCalendarMessage");
+
+  ocrDiagnostic =
+    document.getElementById("ocrDiagnostic");
+
+  ocrRawText =
+    document.getElementById("ocrRawText");
+
+  const required = {
+    imageInput,
+    yearInput,
+    previewArea,
+    previewImage,
+    fileInfo,
+    analyzeButton,
+    statusCard,
+    statusMessage,
+    resultCard,
+    eventList,
+    clearButton
+  };
+
+  const missing =
+    Object.entries(required)
+      .filter(([, value]) => !value)
+      .map(([key]) => key);
+
+  if (missing.length > 0) {
+    alert(
+      "画面の初期化に失敗しました。\n不足要素: " +
+      missing.join(", ")
+    );
+    return;
+  }
+
+  yearInput.value =
+    new Date().getFullYear();
+
+  initializeIOSAppleCalendar();
+
+  imageInput.addEventListener(
+    "change",
+    handleImageSelection
+  );
+
+  analyzeButton.addEventListener(
+    "click",
+    handleAnalyze
+  );
+
+  clearButton.addEventListener(
+    "click",
+    handleClear
+  );
+
+  if (selectAllButton) {
+    selectAllButton.addEventListener(
+      "click",
+      () => setAllEnabled(true)
+    );
+  }
+
+  if (deselectAllButton) {
+    deselectAllButton.addEventListener(
+      "click",
+      () => setAllEnabled(false)
+    );
+  }
+
+  if (appleCalendarButton) {
+    appleCalendarButton.addEventListener(
+      "click",
+      handleAppleCalendar
+    );
+  }
+
+  if (bulkAllDayButton) {
+    bulkAllDayButton.addEventListener(
+      "click",
+      handleBulkAllDay
+    );
+  }
+
+  if (downloadIcsButton) {
+    downloadIcsButton.addEventListener(
+      "click",
+      handleDownloadIcs
+    );
+  }
+
+  console.log(
+    "Jrユース v15 起動完了"
+  );
+}
+
+
+function handleImageSelection() {
   selectedFile =
     imageInput.files?.[0] || null;
 
@@ -187,11 +244,17 @@ imageInput.addEventListener("change", () => {
     return;
   }
 
+  const allowedByType =
+    selectedFile.type
+      .startsWith("image/");
+
+  const allowedByName =
+    /\.(jpg|jpeg|png|webp|heic|heif)$/i
+      .test(selectedFile.name);
+
   if (
-    !selectedFile.type.startsWith("image/") &&
-    !/\.(jpg|jpeg|png|webp|heic|heif)$/i.test(
-      selectedFile.name
-    )
+    !allowedByType &&
+    !allowedByName
   ) {
     showStatus(
       "画像ファイルを選択してください。",
@@ -202,115 +265,153 @@ imageInput.addEventListener("change", () => {
     return;
   }
 
-  const objectUrl =
-    URL.createObjectURL(selectedFile);
+  /*
+    Blob URLではなくFileReaderで直接プレビュー。
+    PC / iPhone / Androidで挙動を揃える。
+  */
+  const reader =
+    new FileReader();
 
-  previewImage.src =
-    objectUrl;
+  reader.onload = () => {
+    previewImage.src =
+      String(reader.result);
 
-  previewArea.classList.remove("hidden");
+    previewArea.classList.remove(
+      "hidden"
+    );
 
-  fileInfo.textContent =
-    `${selectedFile.name} / ` +
-    `${formatBytes(selectedFile.size)} / ` +
-    `${selectedFile.type || "画像"}`;
+    fileInfo.textContent =
+      `${selectedFile.name} / ` +
+      `${formatBytes(selectedFile.size)} / ` +
+      `${selectedFile.type || "画像"}`;
 
-  analyzeButton.disabled =
-    false;
+    analyzeButton.disabled =
+      false;
 
-  hideResults();
-});
+    hideResults();
+
+    showStatus(
+      "画像を読み込みました。OCR解析できます。"
+    );
+  };
+
+  reader.onerror = () => {
+    showStatus(
+      "画像ファイルを読み込めませんでした。",
+      true
+    );
+
+    analyzeButton.disabled =
+      true;
+  };
+
+  reader.readAsDataURL(
+    selectedFile
+  );
+}
 
 
-analyzeButton.addEventListener(
-  "click",
-  async () => {
-    if (!selectedFile) return;
+async function handleAnalyze() {
+  if (!selectedFile) {
+    showStatus(
+      "先に画像を選択してください。",
+      true
+    );
+    return;
+  }
 
-    analyzeButton.disabled = true;
-    hideExportMessage();
+  analyzeButton.disabled = true;
 
-    try {
-      showStatus(
-        "OCRエンジンを準備しています…\n" +
-        "初回のみ日本語認識データの読み込みに時間がかかります。"
+  try {
+    showStatus(
+      "OCRエンジンを準備しています…\n" +
+      "初回のみ日本語認識データの読み込みに時間がかかります。"
+    );
+
+    const imageData =
+      await loadImageForOCR(
+        selectedFile
       );
 
-      const imageData =
-        await loadImageForOCR(selectedFile);
+    const result =
+      await runBrowserOCR(
+        imageData
+      );
 
-      const result =
-        await runBrowserOCR(imageData);
+    const parsed =
+      parseScheduleFromOCR(
+        result,
+        Number(yearInput.value)
+      );
 
-      const parsed =
-        parseScheduleFromOCR(
-          result,
-          Number(yearInput.value)
-        );
+    sourceDocumentTitle =
+      parsed.documentTitle || "";
 
-      sourceDocumentTitle =
-        parsed.documentTitle || "";
-
+    if (
+      ocrRawText &&
+      ocrDiagnostic
+    ) {
       ocrRawText.textContent =
         buildOcrDiagnosticText(
           result,
           parsed
         );
 
-      ocrDiagnostic.classList.remove("hidden");
-
-      renderEvents(parsed);
-
-      showStatus(
-        `OCR解析完了：\n「男」の予定を ${parsed.eventCount} 件抽出しました。`
+      ocrDiagnostic.classList.remove(
+        "hidden"
       );
-    } catch (error) {
-      console.error(error);
-
-      showStatus(
-        "OCR解析できませんでした。\n" +
-        (
-          error instanceof Error
-            ? error.message
-            : String(error)
-        ),
-        true
-      );
-    } finally {
-      analyzeButton.disabled = false;
     }
+
+    renderEvents(parsed);
+
+    showStatus(
+      `OCR解析完了：\n「男」の予定を ${parsed.eventCount} 件抽出しました。`
+    );
+  } catch (error) {
+    console.error(error);
+
+    showStatus(
+      "OCR解析できませんでした。\n" +
+      (
+        error instanceof Error
+          ? error.message
+          : String(error)
+      ),
+      true
+    );
+  } finally {
+    analyzeButton.disabled =
+      false;
   }
-);
+}
 
 
-clearButton.addEventListener("click", () => {
+function handleClear() {
   imageInput.value = "";
   resetImage();
   hideResults();
-  statusCard.classList.add("hidden");
+
+  if (statusCard) {
+    statusCard.classList.add(
+      "hidden"
+    );
+  }
+
   hideExportMessage();
 
   if (ocrDiagnostic) {
-    ocrDiagnostic.classList.add("hidden");
+    ocrDiagnostic.classList.add(
+      "hidden"
+    );
   }
 
   if (ocrRawText) {
     ocrRawText.textContent = "";
   }
-});
+}
 
 
-selectAllButton.addEventListener("click", () => {
-  setAllEnabled(true);
-});
-
-
-deselectAllButton.addEventListener("click", () => {
-  setAllEnabled(false);
-});
-
-
-appleCalendarButton.addEventListener("click", () => {
+function handleAppleCalendar() {
   hideAppleCalendarMessage();
 
   const selected =
@@ -338,43 +439,47 @@ appleCalendarButton.addEventListener("click", () => {
       true
     );
 
-    bulkAllDayButton.classList.remove("hidden");
+    if (bulkAllDayButton) {
+      bulkAllDayButton.classList.remove(
+        "hidden"
+      );
+    }
+
     return;
   }
 
   const title =
-    calendarTitleInput.value.trim() ||
+    calendarTitleInput?.value.trim() ||
     DEFAULT_TITLE;
 
   const reminder =
-    reminderSelect.value;
+    reminderSelect?.value || "none";
 
   const ics =
     buildIcs(
       selected,
       title,
       reminder,
-      includeSourceNote.checked
+      !!includeSourceNote?.checked
     );
 
   showAppleCalendarMessage(
     `${selected.length}件の予定をAppleカレンダーへ渡しています…`
   );
 
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        openInAppleCalendar(
-          ics,
-          `${safeFileName(title)}.ics`
-        );
-      }, 500);
-    });
-  });
-});
+  setTimeout(
+    () => {
+      openInAppleCalendar(
+        ics,
+        `${safeFileName(title)}.ics`
+      );
+    },
+    500
+  );
+}
 
 
-bulkAllDayButton.addEventListener("click", () => {
+function handleBulkAllDay() {
   const cards = [
     ...document.querySelectorAll(
       ".event-card"
@@ -419,7 +524,8 @@ bulkAllDayButton.addEventListener("click", () => {
 
     if (!start || !end) {
       allDay.checked = true;
-      card.dataset.autoAllDay = "true";
+      card.dataset.autoAllDay =
+        "true";
 
       card.querySelector(
         ".event-start"
@@ -443,7 +549,9 @@ bulkAllDayButton.addEventListener("click", () => {
     }
   }
 
-  bulkAllDayButton.classList.add("hidden");
+  bulkAllDayButton.classList.add(
+    "hidden"
+  );
 
   updateExportState();
   detectDuplicates();
@@ -469,20 +577,18 @@ bulkAllDayButton.addEventListener("click", () => {
       true
     );
   }
-});
+}
 
 
-downloadIcsButton.addEventListener("click", () => {
+function handleDownloadIcs() {
   hideExportMessage();
 
-  const cards = [
-    ...document.querySelectorAll(
-      ".event-card"
-    )
-  ];
-
   const selected =
-    cards
+    [
+      ...document.querySelectorAll(
+        ".event-card"
+      )
+    ]
       .map(readEventCard)
       .filter(event => event.enabled);
 
@@ -499,41 +605,34 @@ downloadIcsButton.addEventListener("click", () => {
       event => !validateEvent(event)
     );
 
-  cards.forEach(card => {
-    const event =
-      readEventCard(card);
-
-    card.classList.toggle(
-      "invalid",
-      event.enabled &&
-      !validateEvent(event)
-    );
-  });
-
   if (invalid.length > 0) {
     showExportMessage(
-      `未入力または時刻不明の予定が ${invalid.length} 件あります。` +
-      "赤枠を修正するか終日予定を選んでください。",
+      `未入力または時刻不明の予定が ${invalid.length} 件あります。`,
       true
     );
 
-    bulkAllDayButton.classList.remove("hidden");
+    if (bulkAllDayButton) {
+      bulkAllDayButton.classList.remove(
+        "hidden"
+      );
+    }
+
     return;
   }
 
   const title =
-    calendarTitleInput.value.trim() ||
+    calendarTitleInput?.value.trim() ||
     DEFAULT_TITLE;
 
   const reminder =
-    reminderSelect.value;
+    reminderSelect?.value || "none";
 
   const ics =
     buildIcs(
       selected,
       title,
       reminder,
-      includeSourceNote.checked
+      !!includeSourceNote?.checked
     );
 
   downloadTextFile(
@@ -545,7 +644,118 @@ downloadIcsButton.addEventListener("click", () => {
   showExportMessage(
     `${selected.length}件の予定をICSファイルにまとめました。`
   );
-});
+}
+
+
+function isIOSDevice() {
+  const userAgent =
+    navigator.userAgent || "";
+
+  const platform =
+    navigator.platform || "";
+
+  return (
+    /iPhone|iPad|iPod/i.test(userAgent) ||
+    (
+      platform === "MacIntel" &&
+      navigator.maxTouchPoints > 1
+    )
+  );
+}
+
+
+function initializeIOSAppleCalendar() {
+  if (!iosAppleCalendarSection) {
+    return;
+  }
+
+  iosAppleCalendarSection.classList.toggle(
+    "hidden",
+    !isIOSDevice()
+  );
+}
+
+
+function showAppleCalendarMessage(
+  message,
+  isError = false
+) {
+  if (!appleCalendarMessage) {
+    return;
+  }
+
+  appleCalendarMessage.classList.remove(
+    "hidden"
+  );
+
+  appleCalendarMessage.textContent =
+    message;
+
+  appleCalendarMessage.classList.toggle(
+    "error",
+    isError
+  );
+}
+
+
+function hideAppleCalendarMessage() {
+  if (!appleCalendarMessage) {
+    return;
+  }
+
+  appleCalendarMessage.classList.add(
+    "hidden"
+  );
+
+  appleCalendarMessage.textContent =
+    "";
+
+  appleCalendarMessage.classList.remove(
+    "error"
+  );
+}
+
+
+function openInAppleCalendar(
+  icsText,
+  fileName
+) {
+  const form =
+    document.createElement("form");
+
+  form.method = "POST";
+  form.action =
+    `${WORKER_URL}/apple-calendar`;
+  form.target = "_self";
+  form.style.display = "none";
+
+  const icsField =
+    document.createElement("textarea");
+
+  icsField.name = "ics";
+  icsField.value = icsText;
+
+  const nameField =
+    document.createElement("input");
+
+  nameField.type = "hidden";
+  nameField.name = "filename";
+  nameField.value = fileName;
+
+  form.appendChild(
+    icsField
+  );
+
+  form.appendChild(
+    nameField
+  );
+
+  document.body.appendChild(
+    form
+  );
+
+  form.submit();
+}
 
 
 async function runBrowserOCR(imageData) {
@@ -2460,11 +2670,3 @@ function resizeImage(
 }
 
 
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator
-      .serviceWorker
-      .register("service-worker.js")
-      .catch(console.error);
-  });
-}
