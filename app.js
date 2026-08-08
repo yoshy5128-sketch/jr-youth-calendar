@@ -4,518 +4,169 @@ const WORKER_URL =
 const DEFAULT_TITLE =
   "Jrユース・スケジュール";
 
-let imageInput;
-let yearInput;
-let previewArea;
-let previewImage;
-let fileInfo;
-let analyzeButton;
-let statusCard;
-let statusMessage;
-let resultCard;
-let resultSummary;
-let eventList;
-let clearButton;
-let selectAllButton;
-let deselectAllButton;
-let eventTemplate;
-let duplicateWarning;
-let auditWarning;
-let exportCard;
-let calendarTitleInput;
-let reminderSelect;
-let includeSourceNote;
-let downloadIcsButton;
-let exportMessage;
-let bulkAllDayButton;
-let iosAppleCalendarSection;
-let appleCalendarButton;
-let appleCalendarMessage;
-let ocrDiagnostic;
-let ocrRawText;
+const imageInput = document.getElementById("imageInput");
+const yearInput = document.getElementById("yearInput");
+const previewArea = document.getElementById("previewArea");
+const previewImage = document.getElementById("previewImage");
+const fileInfo = document.getElementById("fileInfo");
+const analyzeButton = document.getElementById("analyzeButton");
+const statusCard = document.getElementById("statusCard");
+const statusMessage = document.getElementById("statusMessage");
+const resultCard = document.getElementById("resultCard");
+const resultSummary = document.getElementById("resultSummary");
+const eventList = document.getElementById("eventList");
+const clearButton = document.getElementById("clearButton");
+const selectAllButton = document.getElementById("selectAllButton");
+const deselectAllButton = document.getElementById("deselectAllButton");
+const eventTemplate = document.getElementById("eventTemplate");
+const duplicateWarning = document.getElementById("duplicateWarning");
+const auditWarning = document.getElementById("auditWarning");
+const exportCard = document.getElementById("exportCard");
+const calendarTitleInput = document.getElementById("calendarTitleInput");
+const reminderSelect = document.getElementById("reminderSelect");
+const includeSourceNote = document.getElementById("includeSourceNote");
+const downloadIcsButton = document.getElementById("downloadIcsButton");
+const exportMessage = document.getElementById("exportMessage");
+const bulkAllDayButton = document.getElementById("bulkAllDayButton");
 
 let selectedFile = null;
 let sourceDocumentTitle = "";
-let ocrWorker = null;
+
+yearInput.value = new Date().getFullYear();
 
 
-/*
-  OCRの列位置
-*/
-const COLUMN_RANGES = {
-  date:     [0.00, 0.13],
-  location: [0.13, 0.29],
-  team:     [0.29, 0.45],
-  time:     [0.45, 0.64],
-  category: [0.64, 0.73],
-  keyOpen:  [0.73, 0.86],
-  keyClose: [0.86, 1.00]
-};
-
-
-document.addEventListener(
-  "DOMContentLoaded",
-  initializeApp
-);
-
-
-function initializeApp() {
-  imageInput =
-    document.getElementById("imageInput");
-
-  yearInput =
-    document.getElementById("yearInput");
-
-  previewArea =
-    document.getElementById("previewArea");
-
-  previewImage =
-    document.getElementById("previewImage");
-
-  fileInfo =
-    document.getElementById("fileInfo");
-
-  analyzeButton =
-    document.getElementById("analyzeButton");
-
-  statusCard =
-    document.getElementById("statusCard");
-
-  statusMessage =
-    document.getElementById("statusMessage");
-
-  resultCard =
-    document.getElementById("resultCard");
-
-  resultSummary =
-    document.getElementById("resultSummary");
-
-  eventList =
-    document.getElementById("eventList");
-
-  clearButton =
-    document.getElementById("clearButton");
-
-  selectAllButton =
-    document.getElementById("selectAllButton");
-
-  deselectAllButton =
-    document.getElementById("deselectAllButton");
-
-  eventTemplate =
-    document.getElementById("eventTemplate");
-
-  duplicateWarning =
-    document.getElementById("duplicateWarning");
-
-  auditWarning =
-    document.getElementById("auditWarning");
-
-  exportCard =
-    document.getElementById("exportCard");
-
-  calendarTitleInput =
-    document.getElementById("calendarTitleInput");
-
-  reminderSelect =
-    document.getElementById("reminderSelect");
-
-  includeSourceNote =
-    document.getElementById("includeSourceNote");
-
-  downloadIcsButton =
-    document.getElementById("downloadIcsButton");
-
-  exportMessage =
-    document.getElementById("exportMessage");
-
-  bulkAllDayButton =
-    document.getElementById("bulkAllDayButton");
-
-  iosAppleCalendarSection =
-    document.getElementById("iosAppleCalendarSection");
-
-  appleCalendarButton =
-    document.getElementById("appleCalendarButton");
-
-  appleCalendarMessage =
-    document.getElementById("appleCalendarMessage");
-
-  ocrDiagnostic =
-    document.getElementById("ocrDiagnostic");
-
-  ocrRawText =
-    document.getElementById("ocrRawText");
-
-  const required = {
-    imageInput,
-    yearInput,
-    previewArea,
-    previewImage,
-    fileInfo,
-    analyzeButton,
-    statusCard,
-    statusMessage,
-    resultCard,
-    eventList,
-    clearButton
-  };
-
-  const missing =
-    Object.entries(required)
-      .filter(([, value]) => !value)
-      .map(([key]) => key);
-
-  if (missing.length > 0) {
-    alert(
-      "画面の初期化に失敗しました。\n不足要素: " +
-      missing.join(", ")
-    );
-    return;
-  }
-
-  yearInput.value =
-    new Date().getFullYear();
-
-  initializeIOSAppleCalendar();
-
-  imageInput.addEventListener(
-    "change",
-    handleImageSelection
-  );
-
-  analyzeButton.addEventListener(
-    "click",
-    handleAnalyze
-  );
-
-  clearButton.addEventListener(
-    "click",
-    handleClear
-  );
-
-  if (selectAllButton) {
-    selectAllButton.addEventListener(
-      "click",
-      () => setAllEnabled(true)
-    );
-  }
-
-  if (deselectAllButton) {
-    deselectAllButton.addEventListener(
-      "click",
-      () => setAllEnabled(false)
-    );
-  }
-
-  if (appleCalendarButton) {
-    appleCalendarButton.addEventListener(
-      "click",
-      handleAppleCalendar
-    );
-  }
-
-  if (bulkAllDayButton) {
-    bulkAllDayButton.addEventListener(
-      "click",
-      handleBulkAllDay
-    );
-  }
-
-  if (downloadIcsButton) {
-    downloadIcsButton.addEventListener(
-      "click",
-      handleDownloadIcs
-    );
-  }
-
-  console.log(
-    "Jrユース v15 起動完了"
-  );
-}
-
-
-function handleImageSelection() {
-  selectedFile =
-    imageInput.files?.[0] || null;
+imageInput.addEventListener("change", () => {
+  selectedFile = imageInput.files?.[0] || null;
 
   if (!selectedFile) {
     resetImage();
     return;
   }
-
-  const allowedByType =
-    selectedFile.type
-      .startsWith("image/");
-
-  const allowedByName =
-    /\.(jpg|jpeg|png|webp|heic|heif)$/i
-      .test(selectedFile.name);
 
   if (
-    !allowedByType &&
-    !allowedByName
+    !selectedFile.type.startsWith("image/") &&
+    !/\.(jpg|jpeg|png|webp|heic|heif)$/i.test(selectedFile.name)
   ) {
-    showStatus(
-      "画像ファイルを選択してください。",
-      true
-    );
-
+    showStatus("画像ファイルを選択してください。", true);
     resetImage();
     return;
   }
 
-  /*
-    Blob URLではなくFileReaderで直接プレビュー。
-    PC / iPhone / Androidで挙動を揃える。
-  */
-  const reader =
-    new FileReader();
+  const objectUrl = URL.createObjectURL(selectedFile);
 
-  reader.onload = () => {
-    previewImage.src =
-      String(reader.result);
+  previewImage.src = objectUrl;
+  previewArea.classList.remove("hidden");
 
-    previewArea.classList.remove(
-      "hidden"
-    );
+  fileInfo.textContent =
+    `${selectedFile.name} / ${formatBytes(selectedFile.size)} / ` +
+    `${selectedFile.type || "画像"}`;
 
-    fileInfo.textContent =
-      `${selectedFile.name} / ` +
-      `${formatBytes(selectedFile.size)} / ` +
-      `${selectedFile.type || "画像"}`;
-
-    analyzeButton.disabled =
-      false;
-
-    hideResults();
-
-    showStatus(
-      "画像を読み込みました。OCR解析できます。"
-    );
-  };
-
-  reader.onerror = () => {
-    showStatus(
-      "画像ファイルを読み込めませんでした。",
-      true
-    );
-
-    analyzeButton.disabled =
-      true;
-  };
-
-  reader.readAsDataURL(
-    selectedFile
-  );
-}
+  analyzeButton.disabled = false;
+  hideResults();
+});
 
 
-async function handleAnalyze() {
-  if (!selectedFile) {
-    showStatus(
-      "先に画像を選択してください。",
-      true
-    );
-    return;
-  }
+analyzeButton.addEventListener("click", async () => {
+  if (!selectedFile) return;
 
   analyzeButton.disabled = true;
+  showStatus("画像を準備しています…");
+  hideExportMessage();
 
   try {
+    const optimized = await resizeImage(selectedFile, 2200, 0.92);
+
     showStatus(
-      "OCRエンジンを準備しています…\n" +
-      "初回のみ日本語認識データの読み込みに時間がかかります。"
+      "予定表を厳密に解析しています…\n" +
+      "読み取り漏れを減らすため、同じ画像を2回照合しています。"
     );
 
-    const imageData =
-      await loadImageForOCR(
-        selectedFile
-      );
+    const response = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        year: Number(yearInput.value),
+        mimeType: optimized.mimeType,
+        imageBase64: optimized.dataUrl
+      })
+    });
 
-    const result =
-      await runBrowserOCR(
-        imageData
-      );
+    let data;
 
-    const parsed =
-      parseScheduleFromOCR(
-        result,
-        Number(yearInput.value)
-      );
-
-    sourceDocumentTitle =
-      parsed.documentTitle || "";
-
-    if (
-      ocrRawText &&
-      ocrDiagnostic
-    ) {
-      ocrRawText.textContent =
-        buildOcrDiagnosticText(
-          result,
-          parsed
-        );
-
-      ocrDiagnostic.classList.remove(
-        "hidden"
+    try {
+      data = await response.json();
+    } catch {
+      throw new Error(
+        `サーバーから正しい応答を受け取れませんでした。HTTP ${response.status}`
       );
     }
 
-    renderEvents(parsed);
+    if (!response.ok || !data.ok) {
+      throw new Error(
+        data.details ||
+        data.error ||
+        `HTTP ${response.status}`
+      );
+    }
+
+    sourceDocumentTitle = data.documentTitle || "";
+
+    renderEvents(data);
 
     showStatus(
-      `OCR解析完了：\n「男」の予定を ${parsed.eventCount} 件抽出しました。`
+      "解析完了：\n" +
+      `「男」の予定を ${data.eventCount ?? 0} 件取得しました。`
     );
   } catch (error) {
     console.error(error);
 
     showStatus(
-      "OCR解析できませんでした。\n" +
-      (
-        error instanceof Error
-          ? error.message
-          : String(error)
-      ),
+      "解析できませんでした。\n" +
+      (error instanceof Error ? error.message : String(error)),
       true
     );
   } finally {
-    analyzeButton.disabled =
-      false;
+    analyzeButton.disabled = false;
   }
-}
+});
 
 
-function handleClear() {
+clearButton.addEventListener("click", () => {
   imageInput.value = "";
   resetImage();
   hideResults();
-
-  if (statusCard) {
-    statusCard.classList.add(
-      "hidden"
-    );
-  }
-
+  statusCard.classList.add("hidden");
   hideExportMessage();
-
-  if (ocrDiagnostic) {
-    ocrDiagnostic.classList.add(
-      "hidden"
-    );
-  }
-
-  if (ocrRawText) {
-    ocrRawText.textContent = "";
-  }
-}
+});
 
 
-function handleAppleCalendar() {
-  hideAppleCalendarMessage();
-
-  const selected =
-    [...document.querySelectorAll(".event-card")]
-      .map(readEventCard)
-      .filter(event => event.enabled);
-
-  if (selected.length === 0) {
-    showAppleCalendarMessage(
-      "追加する予定を1件以上選択してください。",
-      true
-    );
-    return;
-  }
-
-  const invalid =
-    selected.filter(
-      event => !validateEvent(event)
-    );
-
-  if (invalid.length > 0) {
-    showAppleCalendarMessage(
-      `未入力または時刻不明の予定が ${invalid.length} 件あります。` +
-      "時刻を修正するか、終日予定にしてください。",
-      true
-    );
-
-    if (bulkAllDayButton) {
-      bulkAllDayButton.classList.remove(
-        "hidden"
-      );
-    }
-
-    return;
-  }
-
-  const title =
-    calendarTitleInput?.value.trim() ||
-    DEFAULT_TITLE;
-
-  const reminder =
-    reminderSelect?.value || "none";
-
-  const ics =
-    buildIcs(
-      selected,
-      title,
-      reminder,
-      !!includeSourceNote?.checked
-    );
-
-  showAppleCalendarMessage(
-    `${selected.length}件の予定をAppleカレンダーへ渡しています…`
-  );
-
-  setTimeout(
-    () => {
-      openInAppleCalendar(
-        ics,
-        `${safeFileName(title)}.ics`
-      );
-    },
-    500
-  );
-}
+selectAllButton.addEventListener("click", () => {
+  setAllEnabled(true);
+});
 
 
-function handleBulkAllDay() {
-  const cards = [
-    ...document.querySelectorAll(
-      ".event-card"
-    )
-  ];
+deselectAllButton.addEventListener("click", () => {
+  setAllEnabled(false);
+});
+
+
+bulkAllDayButton.addEventListener("click", () => {
+  const cards = [...document.querySelectorAll(".event-card")];
 
   let changedCount = 0;
   let dateMissingCount = 0;
 
   for (const card of cards) {
-    const enabled =
-      card.querySelector(
-        ".event-enabled"
-      ).checked;
+    const enabled = card.querySelector(".event-enabled").checked;
 
     if (!enabled) continue;
 
-    const date =
-      card.querySelector(
-        ".event-date"
-      ).value;
-
-    const start =
-      card.querySelector(
-        ".event-start"
-      ).value;
-
-    const end =
-      card.querySelector(
-        ".event-end"
-      ).value;
-
-    const allDay =
-      card.querySelector(
-        ".event-all-day"
-      );
+    const date = card.querySelector(".event-date").value;
+    const start = card.querySelector(".event-start").value;
+    const end = card.querySelector(".event-end").value;
+    const allDay = card.querySelector(".event-all-day");
 
     if (!date) {
       dateMissingCount++;
@@ -524,48 +175,28 @@ function handleBulkAllDay() {
 
     if (!start || !end) {
       allDay.checked = true;
-      card.dataset.autoAllDay =
-        "true";
 
-      card.querySelector(
-        ".event-start"
-      ).disabled = true;
+      card.dataset.autoAllDay = "true";
 
-      card.querySelector(
-        ".event-end"
-      ).disabled = true;
+      card.querySelector(".event-start").disabled = true;
+      card.querySelector(".event-end").disabled = true;
 
-      card.querySelector(
-        ".time-warning"
-      ).classList.add(
-        "hidden"
-      );
-
-      card.classList.remove(
-        "invalid"
-      );
+      card.querySelector(".time-warning").classList.add("hidden");
+      card.classList.remove("invalid");
 
       changedCount++;
     }
   }
 
-  bulkAllDayButton.classList.add(
-    "hidden"
-  );
-
+  bulkAllDayButton.classList.add("hidden");
   updateExportState();
   detectDuplicates();
 
-  if (
-    changedCount > 0 &&
-    dateMissingCount === 0
-  ) {
+  if (changedCount > 0 && dateMissingCount === 0) {
     showExportMessage(
       `${changedCount}件の時刻不明予定を終日予定に変更しました。`
     );
-  } else if (
-    changedCount > 0
-  ) {
+  } else if (changedCount > 0) {
     showExportMessage(
       `${changedCount}件を終日予定に変更しました。` +
       ` 日付未入力が ${dateMissingCount} 件残っています。`,
@@ -577,20 +208,17 @@ function handleBulkAllDay() {
       true
     );
   }
-}
+});
 
 
-function handleDownloadIcs() {
+downloadIcsButton.addEventListener("click", () => {
   hideExportMessage();
 
-  const selected =
-    [
-      ...document.querySelectorAll(
-        ".event-card"
-      )
-    ]
-      .map(readEventCard)
-      .filter(event => event.enabled);
+  const cards = [...document.querySelectorAll(".event-card")];
+
+  const selected = cards
+    .map(readEventCard)
+    .filter(event => event.enabled);
 
   if (selected.length === 0) {
     showExportMessage(
@@ -600,39 +228,41 @@ function handleDownloadIcs() {
     return;
   }
 
-  const invalid =
-    selected.filter(
-      event => !validateEvent(event)
+  const invalid = selected.filter(event => !validateEvent(event));
+
+  cards.forEach(card => {
+    const event = readEventCard(card);
+
+    card.classList.toggle(
+      "invalid",
+      event.enabled && !validateEvent(event)
     );
+  });
 
   if (invalid.length > 0) {
     showExportMessage(
-      `未入力または時刻不明の予定が ${invalid.length} 件あります。`,
+      `未入力または時刻不明の予定が ${invalid.length} 件あります。` +
+      "赤枠を修正するか終日予定を選んでください。",
       true
     );
 
-    if (bulkAllDayButton) {
-      bulkAllDayButton.classList.remove(
-        "hidden"
-      );
-    }
-
+    bulkAllDayButton.classList.remove("hidden");
     return;
   }
 
   const title =
-    calendarTitleInput?.value.trim() ||
+    calendarTitleInput.value.trim() ||
     DEFAULT_TITLE;
 
   const reminder =
-    reminderSelect?.value || "none";
+    reminderSelect.value;
 
   const ics =
     buildIcs(
       selected,
       title,
       reminder,
-      !!includeSourceNote?.checked
+      includeSourceNote.checked
     );
 
   downloadTextFile(
@@ -644,1262 +274,7 @@ function handleDownloadIcs() {
   showExportMessage(
     `${selected.length}件の予定をICSファイルにまとめました。`
   );
-}
-
-
-function isIOSDevice() {
-  const userAgent =
-    navigator.userAgent || "";
-
-  const platform =
-    navigator.platform || "";
-
-  return (
-    /iPhone|iPad|iPod/i.test(userAgent) ||
-    (
-      platform === "MacIntel" &&
-      navigator.maxTouchPoints > 1
-    )
-  );
-}
-
-
-function initializeIOSAppleCalendar() {
-  if (!iosAppleCalendarSection) {
-    return;
-  }
-
-  iosAppleCalendarSection.classList.toggle(
-    "hidden",
-    !isIOSDevice()
-  );
-}
-
-
-function showAppleCalendarMessage(
-  message,
-  isError = false
-) {
-  if (!appleCalendarMessage) {
-    return;
-  }
-
-  appleCalendarMessage.classList.remove(
-    "hidden"
-  );
-
-  appleCalendarMessage.textContent =
-    message;
-
-  appleCalendarMessage.classList.toggle(
-    "error",
-    isError
-  );
-}
-
-
-function hideAppleCalendarMessage() {
-  if (!appleCalendarMessage) {
-    return;
-  }
-
-  appleCalendarMessage.classList.add(
-    "hidden"
-  );
-
-  appleCalendarMessage.textContent =
-    "";
-
-  appleCalendarMessage.classList.remove(
-    "error"
-  );
-}
-
-
-function openInAppleCalendar(
-  icsText,
-  fileName
-) {
-  const form =
-    document.createElement("form");
-
-  form.method = "POST";
-  form.action =
-    `${WORKER_URL}/apple-calendar`;
-  form.target = "_self";
-  form.style.display = "none";
-
-  const icsField =
-    document.createElement("textarea");
-
-  icsField.name = "ics";
-  icsField.value = icsText;
-
-  const nameField =
-    document.createElement("input");
-
-  nameField.type = "hidden";
-  nameField.name = "filename";
-  nameField.value = fileName;
-
-  form.appendChild(
-    icsField
-  );
-
-  form.appendChild(
-    nameField
-  );
-
-  document.body.appendChild(
-    form
-  );
-
-  form.submit();
-}
-
-
-async function runBrowserOCR(imageData) {
-  if (!window.Tesseract) {
-    throw new Error(
-      "OCRライブラリを読み込めませんでした。インターネット接続を確認してください。"
-    );
-  }
-
-  if (!ocrWorker) {
-    ocrWorker =
-      await Tesseract.createWorker(
-        ["jpn", "eng"],
-        1,
-        {
-          logger: message => {
-            if (
-              typeof message.progress === "number"
-            ) {
-              const percent =
-                Math.round(
-                  message.progress * 100
-                );
-
-              const label =
-                translateOcrStatus(
-                  message.status
-                );
-
-              showStatus(
-                `${label}\n${percent}%`
-              );
-            }
-          }
-        }
-      );
-
-    await ocrWorker.setParameters({
-      preserve_interword_spaces: "1"
-    });
-  }
-
-  /*
-    TSV/word単位の座標情報を使うため
-    blocks/words出力を有効化。
-  */
-  const result =
-    await ocrWorker.recognize(
-      imageData,
-      {},
-      {
-        text: true,
-        blocks: true,
-        tsv: true
-      }
-    );
-
-  return result.data;
-}
-
-
-function translateOcrStatus(status) {
-  const map = {
-    "loading tesseract core":
-      "OCRエンジンを読み込み中…",
-    "initializing tesseract":
-      "OCRエンジンを初期化中…",
-    "loading language traineddata":
-      "日本語認識データを読み込み中…",
-    "initializing api":
-      "日本語OCRを準備中…",
-    "recognizing text":
-      "予定表を読み取り中…"
-  };
-
-  return (
-    map[status] ||
-    "OCR処理中…"
-  );
-}
-
-
-async function loadImageForOCR(file) {
-  const dataUrl =
-    await fileToDataUrl(file);
-
-  /*
-    OCR精度を優先し、極端に縮小しない。
-    長辺2400pxまで。
-  */
-  return await resizeDataUrl(
-    dataUrl,
-    2400,
-    0.96
-  );
-}
-
-
-function fileToDataUrl(file) {
-  return new Promise(
-    (resolve, reject) => {
-      const reader =
-        new FileReader();
-
-      reader.onload =
-        () =>
-          resolve(
-            String(
-              reader.result
-            )
-          );
-
-      reader.onerror =
-        () =>
-          reject(
-            new Error(
-              "画像ファイルを読み込めませんでした。"
-            )
-          );
-
-      reader.readAsDataURL(file);
-    }
-  );
-}
-
-
-function resizeDataUrl(
-  dataUrl,
-  maxDimension,
-  quality
-) {
-  return new Promise(
-    (resolve, reject) => {
-      const image =
-        new Image();
-
-      image.onload = () => {
-        let width =
-          image.naturalWidth;
-
-        let height =
-          image.naturalHeight;
-
-        const largest =
-          Math.max(
-            width,
-            height
-          );
-
-        if (
-          largest >
-          maxDimension
-        ) {
-          const scale =
-            maxDimension /
-            largest;
-
-          width =
-            Math.round(
-              width * scale
-            );
-
-          height =
-            Math.round(
-              height * scale
-            );
-        }
-
-        const canvas =
-          document.createElement(
-            "canvas"
-          );
-
-        canvas.width =
-          width;
-
-        canvas.height =
-          height;
-
-        const context =
-          canvas.getContext(
-            "2d",
-            {
-              alpha: false
-            }
-          );
-
-        context.fillStyle =
-          "#ffffff";
-
-        context.fillRect(
-          0,
-          0,
-          width,
-          height
-        );
-
-        context.drawImage(
-          image,
-          0,
-          0,
-          width,
-          height
-        );
-
-        resolve(
-          canvas.toDataURL(
-            "image/jpeg",
-            quality
-          )
-        );
-      };
-
-      image.onerror =
-        () =>
-          reject(
-            new Error(
-              "画像を開けませんでした。"
-            )
-          );
-
-      image.src =
-        dataUrl;
-    }
-  );
-}
-
-
-/*
-  Tesseractのblocksツリーからwordを集める。
-  バージョン差を吸収するためTSVもフォールバックに使用。
-*/
-function collectWords(ocrData) {
-  const words = [];
-
-  const walk = node => {
-    if (!node) return;
-
-    if (
-      node.text &&
-      node.bbox &&
-      typeof node.bbox.x0 === "number" &&
-      typeof node.bbox.y0 === "number"
-    ) {
-      const children =
-        node.blocks ||
-        node.paragraphs ||
-        node.lines ||
-        node.words ||
-        node.symbols;
-
-      /*
-        末端に近いwordだけ採用。
-      */
-      if (
-        !Array.isArray(children) ||
-        children.length === 0
-      ) {
-        words.push({
-          text:
-            cleanOcrText(
-              node.text
-            ),
-          x0:
-            node.bbox.x0,
-          y0:
-            node.bbox.y0,
-          x1:
-            node.bbox.x1,
-          y1:
-            node.bbox.y1,
-          confidence:
-            Number(
-              node.confidence
-            ) || 0
-        });
-      }
-    }
-
-    const keys = [
-      "blocks",
-      "paragraphs",
-      "lines",
-      "words"
-    ];
-
-    for (
-      const key
-      of keys
-    ) {
-      const list =
-        node[key];
-
-      if (
-        Array.isArray(list)
-      ) {
-        for (
-          const child
-          of list
-        ) {
-          walk(child);
-        }
-      }
-    }
-  };
-
-  if (
-    Array.isArray(
-      ocrData.blocks
-    )
-  ) {
-    for (
-      const block
-      of ocrData.blocks
-    ) {
-      walk(block);
-    }
-  }
-
-  /*
-    blocksからwordが取れなかった場合はTSV解析。
-  */
-  if (
-    words.length === 0 &&
-    typeof ocrData.tsv ===
-      "string"
-  ) {
-    const rows =
-      ocrData.tsv
-        .split(/\r?\n/)
-        .slice(1);
-
-    for (
-      const row
-      of rows
-    ) {
-      const cols =
-        row.split("\t");
-
-      if (
-        cols.length < 12
-      ) {
-        continue;
-      }
-
-      const level =
-        Number(cols[0]);
-
-      const left =
-        Number(cols[6]);
-
-      const top =
-        Number(cols[7]);
-
-      const width =
-        Number(cols[8]);
-
-      const height =
-        Number(cols[9]);
-
-      const confidence =
-        Number(cols[10]);
-
-      const text =
-        cleanOcrText(
-          cols.slice(11).join("\t")
-        );
-
-      if (
-        level === 5 &&
-        text
-      ) {
-        words.push({
-          text,
-          x0: left,
-          y0: top,
-          x1:
-            left + width,
-          y1:
-            top + height,
-          confidence
-        });
-      }
-    }
-  }
-
-  return words.filter(
-    word =>
-      word.text &&
-      word.confidence >= 15
-  );
-}
-
-
-function parseScheduleFromOCR(
-  ocrData,
-  year
-) {
-  const words =
-    collectWords(
-      ocrData
-    );
-
-  if (
-    words.length === 0
-  ) {
-    throw new Error(
-      "文字位置を取得できませんでした。"
-    );
-  }
-
-  const maxX =
-    Math.max(
-      ...words.map(
-        word => word.x1
-      )
-    );
-
-  /*
-    行をY座標でクラスタリング。
-    文字高さの中央値から許容幅を決める。
-  */
-  const heights =
-    words
-      .map(
-        word =>
-          Math.max(
-            1,
-            word.y1 -
-            word.y0
-          )
-      )
-      .sort(
-        (a, b) => a - b
-      );
-
-  const medianHeight =
-    heights[
-      Math.floor(
-        heights.length / 2
-      )
-    ] || 20;
-
-  const rowTolerance =
-    Math.max(
-      10,
-      medianHeight * 0.85
-    );
-
-  const sorted =
-    [...words]
-      .sort(
-        (a, b) =>
-          (
-            (
-              a.y0 +
-              a.y1
-            ) / 2
-          ) -
-          (
-            (
-              b.y0 +
-              b.y1
-            ) / 2
-          )
-      );
-
-  const rows = [];
-
-  for (
-    const word
-    of sorted
-  ) {
-    const cy =
-      (
-        word.y0 +
-        word.y1
-      ) / 2;
-
-    let target =
-      rows.find(
-        row =>
-          Math.abs(
-            row.cy -
-            cy
-          ) <=
-          rowTolerance
-      );
-
-    if (!target) {
-      target = {
-        cy,
-        words: []
-      };
-
-      rows.push(
-        target
-      );
-    }
-
-    target.words.push(
-      word
-    );
-
-    target.cy =
-      target.words
-        .reduce(
-          (
-            sum,
-            item
-          ) =>
-            sum +
-            (
-              item.y0 +
-              item.y1
-            ) / 2,
-          0
-        ) /
-      target.words.length;
-  }
-
-  rows.sort(
-    (a, b) =>
-      a.cy - b.cy
-  );
-
-  const month =
-    detectMonth(
-      ocrData.text || ""
-    );
-
-  let currentDay = null;
-  let currentCategory = "";
-  const parsedEvents = [];
-
-  for (
-    const row
-    of rows
-  ) {
-    row.words.sort(
-      (a, b) =>
-        a.x0 -
-        b.x0
-    );
-
-    const cells =
-      splitRowIntoColumns(
-        row.words,
-        maxX
-      );
-
-    const rowText =
-      Object.values(cells)
-        .join(" ")
-        .trim();
-
-    /*
-      見出し行・完全空欄行を除外
-    */
-    if (
-      !rowText ||
-      looksLikeHeader(
-        rowText
-      )
-    ) {
-      continue;
-    }
-
-    const day =
-      parseDay(
-        cells.date
-      );
-
-    if (day) {
-      currentDay =
-        day;
-    }
-
-    const category =
-      parseCategory(
-        cells.category
-      );
-
-    if (category) {
-      currentCategory =
-        category;
-    }
-
-    const time =
-      parseTimeRange(
-        cells.time
-      );
-
-    const location =
-      normalizeCell(
-        cells.location
-      );
-
-    const team =
-      normalizeCell(
-        cells.team
-      );
-
-    /*
-      予定行らしさ:
-      日付継承済みで、
-      場所/枠/時間のいずれかがある。
-    */
-    if (
-      !currentDay ||
-      (
-        !location &&
-        !team &&
-        !cells.time
-      )
-    ) {
-      continue;
-    }
-
-    const finalCategory =
-      category ||
-      currentCategory;
-
-    /*
-      区分がはっきりしない行は
-      誤って男扱いしない。
-    */
-    if (
-      finalCategory !==
-      "男" &&
-      finalCategory !==
-      "女"
-    ) {
-      continue;
-    }
-
-    const date =
-      buildDateString(
-        year,
-        month,
-        currentDay
-      );
-
-    if (!date) {
-      continue;
-    }
-
-    parsedEvents.push({
-      calendarTitle:
-        DEFAULT_TITLE,
-
-      date,
-
-      startTime:
-        time.start,
-
-      endTime:
-        time.end,
-
-      location,
-
-      category:
-        finalCategory,
-
-      team,
-
-      keyOpen:
-        normalizePersonCell(
-          cells.keyOpen
-        ),
-
-      keyClose:
-        normalizePersonCell(
-          cells.keyClose
-        ),
-
-      notes:
-        "",
-
-      confidence:
-        estimateRowConfidence(
-          row.words
-        )
-    });
-  }
-
-  const maleEvents =
-    dedupeParsedEvents(
-      parsedEvents.filter(
-        event =>
-          event.category ===
-          "男"
-      )
-    );
-
-  return {
-    ok: true,
-    documentTitle:
-      "Jrユース予定表（ブラウザOCR）",
-    calendarTitle:
-      DEFAULT_TITLE,
-    year,
-    month,
-    events:
-      maleEvents,
-    eventCount:
-      maleEvents.length,
-    audit: {
-      firstPassRows:
-        parsedEvents.length,
-      secondPassRows:
-        parsedEvents.length,
-      mergedRows:
-        parsedEvents.length,
-      hasDisagreement:
-        false,
-      mode:
-        "browser-ocr-no-api"
-    }
-  };
-}
-
-
-function splitRowIntoColumns(
-  words,
-  imageWidth
-) {
-  const cells = {
-    date: [],
-    location: [],
-    team: [],
-    time: [],
-    category: [],
-    keyOpen: [],
-    keyClose: []
-  };
-
-  for (
-    const word
-    of words
-  ) {
-    const cx =
-      (
-        word.x0 +
-        word.x1
-      ) / 2;
-
-    const ratio =
-      cx /
-      imageWidth;
-
-    for (
-      const [
-        key,
-        range
-      ]
-      of Object.entries(
-        COLUMN_RANGES
-      )
-    ) {
-      if (
-        ratio >=
-          range[0] &&
-        ratio <
-          range[1]
-      ) {
-        cells[key].push(
-          word
-        );
-        break;
-      }
-    }
-  }
-
-  const output = {};
-
-  for (
-    const [
-      key,
-      list
-    ]
-    of Object.entries(
-      cells
-    )
-  ) {
-    output[key] =
-      list
-        .sort(
-          (a, b) =>
-            a.x0 -
-            b.x0
-        )
-        .map(
-          item =>
-            item.text
-        )
-        .join(" ")
-        .trim();
-  }
-
-  return output;
-}
-
-
-function cleanOcrText(value) {
-  return String(
-    value || ""
-  )
-    .replace(
-      /[|｜]/g,
-      ""
-    )
-    .replace(
-      /\s+/g,
-      " "
-    )
-    .trim();
-}
-
-
-function normalizeCell(value) {
-  return cleanOcrText(
-    value
-  )
-    .replace(
-      /\s+/g,
-      ""
-    )
-    .replace(
-      /Jr\s*ユース/gi,
-      "Jrユース"
-    );
-}
-
-
-function normalizePersonCell(
-  value
-) {
-  const text =
-    normalizeCell(
-      value
-    );
-
-  /*
-    誤混入防止:
-    明らかに時間/男/女/場所記号を含む場合は
-    鍵当番として採用しない。
-  */
-  if (
-    !text ||
-    /[:：〜～]/.test(text) ||
-    /男|女|Jr|ユース/.test(text)
-  ) {
-    return "";
-  }
-
-  return text;
-}
-
-
-function parseDay(value) {
-  const text =
-    normalizeCell(
-      value
-    );
-
-  const match =
-    text.match(
-      /(?:^|[^0-9])([1-9]|[12][0-9]|3[01])(?:日|$)/
-    );
-
-  if (!match) {
-    return null;
-  }
-
-  return Number(
-    match[1]
-  );
-}
-
-
-function detectMonth(text) {
-  const match =
-    String(text || "")
-      .match(
-        /([1-9]|1[0-2])\s*月/
-      );
-
-  if (match) {
-    return Number(
-      match[1]
-    );
-  }
-
-  /*
-    月が取れない場合、
-    現在月を初期値にする。
-    画面確認で日付修正可能。
-  */
-  return new Date()
-    .getMonth() + 1;
-}
-
-
-function parseCategory(value) {
-  const text =
-    normalizeCell(
-      value
-    );
-
-  if (
-    text.includes("女子") ||
-    text.includes("女")
-  ) {
-    return "女";
-  }
-
-  if (
-    text.includes("男子") ||
-    text.includes("男")
-  ) {
-    return "男";
-  }
-
-  return "";
-}
-
-
-function parseTimeRange(value) {
-  const text =
-    String(
-      value || ""
-    )
-      .replace(
-        /\s+/g,
-        ""
-      )
-      .replace(
-        /：/g,
-        ":"
-      )
-      .replace(
-        /〜|～|~|－|―|−/g,
-        "-"
-      );
-
-  if (
-    /未定|午前中|午後|終日/.test(
-      text
-    )
-  ) {
-    return {
-      start: "",
-      end: ""
-    };
-  }
-
-  const match =
-    text.match(
-      /([0-2]?\d):([0-5]\d)-([0-2]?\d):([0-5]\d)/
-    );
-
-  if (!match) {
-    return {
-      start: "",
-      end: ""
-    };
-  }
-
-  return {
-    start:
-      `${String(
-        Number(match[1])
-      ).padStart(2, "0")}:${match[2]}`,
-
-    end:
-      `${String(
-        Number(match[3])
-      ).padStart(2, "0")}:${match[4]}`
-  };
-}
-
-
-function buildDateString(
-  year,
-  month,
-  day
-) {
-  if (
-    !year ||
-    !month ||
-    !day
-  ) {
-    return "";
-  }
-
-  const date =
-    new Date(
-      Date.UTC(
-        year,
-        month - 1,
-        day
-      )
-    );
-
-  if (
-    date.getUTCMonth() !==
-      month - 1 ||
-    date.getUTCDate() !==
-      day
-  ) {
-    return "";
-  }
-
-  return (
-    `${year}-` +
-    `${String(month).padStart(2, "0")}-` +
-    `${String(day).padStart(2, "0")}`
-  );
-}
-
-
-function looksLikeHeader(text) {
-  const normalized =
-    normalizeCell(
-      text
-    );
-
-  return (
-    normalized.includes(
-      "日程"
-    ) &&
-    (
-      normalized.includes(
-        "場所"
-      ) ||
-      normalized.includes(
-        "時間"
-      )
-    )
-  );
-}
-
-
-function estimateRowConfidence(
-  words
-) {
-  if (
-    words.length === 0
-  ) {
-    return 0;
-  }
-
-  const avg =
-    words.reduce(
-      (
-        sum,
-        item
-      ) =>
-        sum +
-        Math.max(
-          0,
-          Math.min(
-            100,
-            Number(
-              item.confidence
-            ) || 0
-          )
-        ),
-      0
-    ) /
-    words.length;
-
-  return Math.max(
-    0,
-    Math.min(
-      1,
-      avg / 100
-    )
-  );
-}
-
-
-function dedupeParsedEvents(
-  events
-) {
-  const map =
-    new Map();
-
-  for (
-    const event
-    of events
-  ) {
-    const key =
-      [
-        event.date,
-        event.startTime,
-        event.endTime,
-        event.location,
-        event.team,
-        event.category
-      ].join("|");
-
-    if (
-      !map.has(key)
-    ) {
-      map.set(
-        key,
-        event
-      );
-    }
-  }
-
-  return [
-    ...map.values()
-  ].sort(
-    (a, b) =>
-      a.date.localeCompare(
-        b.date
-      ) ||
-      a.startTime.localeCompare(
-        b.startTime
-      )
-  );
-}
-
-
-function buildOcrDiagnosticText(
-  ocrData,
-  parsed
-) {
-  return (
-    "===== OCR全文 =====\n" +
-    String(
-      ocrData.text || ""
-    ).trim() +
-    "\n\n===== 抽出結果 =====\n" +
-    JSON.stringify(
-      parsed.events,
-      null,
-      2
-    )
-  );
-}
+});
 
 
 function renderEvents(data) {
@@ -2196,7 +571,6 @@ function detectDuplicates() {
   ZもTZIDも付けないため、Googleカレンダー側がGMT+00表示でも
   予定表に書かれた14:00を14:00として取り込む。
 */
-
 function buildIcs(
   events,
   title,
@@ -2670,3 +1044,11 @@ function resizeImage(
 }
 
 
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator
+      .serviceWorker
+      .register("service-worker.js")
+      .catch(console.error);
+  });
+}

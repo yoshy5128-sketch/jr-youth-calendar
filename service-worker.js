@@ -1,5 +1,57 @@
-/*
-v15 OCR安定確認版ではService Workerを使用しません。
-古いPWAキャッシュによるファイル混在を防ぐため、
-index.html起動時に既存Service WorkerとCache Storageを解除します。
-*/
+const CACHE_NAME = "jr-youth-calendar-v7";
+
+const ASSETS = [
+  "./",
+  "./index.html",
+  "./style.css",
+  "./app.js",
+  "./manifest.json"
+];
+
+self.addEventListener("install", event => {
+  event.waitUntil(
+    caches
+      .open(CACHE_NAME)
+      .then(cache => cache.addAll(ASSETS))
+  );
+
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", event => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then(keys =>
+        Promise.all(
+          keys
+            .filter(key => key !== CACHE_NAME)
+            .map(key => caches.delete(key))
+        )
+      )
+  );
+
+  self.clients.claim();
+});
+
+self.addEventListener("fetch", event => {
+  if (event.request.method !== "GET") return;
+
+  event.respondWith(
+    fetch(event.request)
+      .then(response => {
+        const copy = response.clone();
+
+        caches
+          .open(CACHE_NAME)
+          .then(cache =>
+            cache.put(event.request, copy)
+          );
+
+        return response;
+      })
+      .catch(() =>
+        caches.match(event.request)
+      )
+  );
+});
