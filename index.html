@@ -17,7 +17,7 @@
 
 <header class="app-header">
   <h1>Jrユース・スケジュール</h1>
-  <p>予定表画像から「男」の予定だけを抽出し、ICSファイルを作成します</p>
+  <p>予定表画像を端末内OCRで読み取り、「男」の予定だけを抽出します</p>
 </header>
 
 <main>
@@ -45,12 +45,11 @@
     </div>
 
     <button id="analyzeButton" class="primary-button" disabled type="button">
-      画像を解析する
+      画像をOCR解析する
     </button>
 
     <p class="notice">
-      画像は解析のためCloudflare Workerを経由してGemini APIへ送信されます。
-      GitHubには保存しません。
+      画像認識はこの端末内で行います。Gemini APIやGoogle Cloudへ画像を送信しません。
     </p>
   </section>
 
@@ -74,6 +73,11 @@
     </div>
 
     <div id="auditWarning" class="audit-box hidden"></div>
+
+    <details id="ocrDiagnostic" class="help-box hidden">
+      <summary>OCR読み取り内容を確認</summary>
+      <pre id="ocrRawText" class="ocr-raw-text"></pre>
+    </details>
     <div id="duplicateWarning" class="warning-box hidden"></div>
 
     <div class="toolbar">
@@ -256,6 +260,7 @@
 </template>
 
 
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.min.js"></script>
 <script src="app.js"></script>
 
 </body>

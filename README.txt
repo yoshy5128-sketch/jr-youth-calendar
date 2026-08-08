@@ -1,41 +1,57 @@
-Jrユース・スケジュール v12
-安定版（v7解析復元 + Appleカレンダー）
-===========================================
+Jrユース・スケジュール v14
+ブラウザ内OCR試験版（Gemini API不使用）
+==============================================
 
-今回の方針:
-画像解析部分は、PC/Androidで正常動作していた
-v7の2回解析ロジックへ完全に戻しました。
+目的:
+Geminiの無料枠・レート制限から完全に離れるため、
+画像認識をTesseract.jsによる端末内OCRへ置き換えました。
 
-Appleカレンダー機能は
-Cloudflare Workerの /apple-calendar
-という別ルートだけで動作します。
+特徴:
+- Gemini API 不使用
+- APIキー不要
+- Google Cloud不要
+- クレジットカード不要
+- OCR回数制限なし
+- PC / Android / iPhone対応
+- Appleカレンダー機能は既存Workerを利用
+- ICS出力は従来どおり
 
-つまり:
-POST /             → 従来の画像解析
-POST /apple-calendar → ICSをAppleカレンダーへ渡す
+初回:
+Tesseract.js本体と日本語OCRデータをCDNから読み込みます。
+初回だけ時間がかかります。
+その後はブラウザキャッシュが効く場合があります。
 
-両者のコード経路は独立しています。
+重要:
+これは試験版です。
+GeminiのようにAIが表を意味理解するのではなく、
+OCR文字の座標からプログラムで
+「日程 / 場所 / 枠 / 時間 / 区分 / 鍵開 / 鍵閉」
+を割り当てます。
 
-GitHub:
-- index.html
-- style.css
-- app.js
-- manifest.json
-- service-worker.js
-- .github/workflows/deploy.yml
-を上書き。
+予定表レイアウトが固定なら、
+列位置を合わせ込むことで精度改善が可能です。
 
-Cloudflare:
-worker.jsを丸ごと上書きしてDeploy。
+今回の初期列割合:
+date     0.00 - 0.13
+location 0.13 - 0.29
+team     0.29 - 0.45
+time     0.45 - 0.64
+category 0.64 - 0.73
+keyOpen  0.73 - 0.86
+keyClose 0.86 - 1.00
 
-Worker URLを直接開いて
-version:
-v12-stable-v7-parser-apple
-と表示されれば更新済み。
+結果画面の
+「OCR読み取り内容を確認」
+を開くと、
+OCR全文と抽出JSONを確認できます。
 
-公開ページ:
-https://yoshy5128-sketch.github.io/jr-youth-calendar/?v=12
+更新方法:
+GitHub側のファイルを上書きしてCommit。
 
-注意:
-Gemini無料枠の429が出る場合は、
-コード故障ではなくAPI側の利用上限です。
+Cloudflare Worker:
+変更不要です。
+今使っているAppleカレンダー対応Workerをそのまま使用してください。
+
+公開後:
+?v=14
+を付けて確認してください。
