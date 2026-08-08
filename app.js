@@ -247,14 +247,13 @@ appleCalendarButton.addEventListener(
         includeSourceNote.checked
       );
 
+    showAppleCalendarMessage(
+      `${selected.length}件の予定をAppleカレンダーへ渡しています…`
+    );
+
     openInAppleCalendar(
       ics,
       `${safeFileName(title)}.ics`
-    );
-
-    showAppleCalendarMessage(
-      `${selected.length}件の予定をAppleカレンダーへ渡しました。` +
-      " 予定一覧が表示されたら「すべて追加」を選んでください。"
     );
   }
 );
@@ -1012,7 +1011,16 @@ function openInAppleCalendar(
   form.method = "POST";
   form.action =
     `${WORKER_URL}/apple-calendar`;
-  form.target = "_blank";
+
+  /*
+    iPhone / iPadのSafariやホーム画面PWAでは
+    target="_blank" のフォーム送信がブロックされ、
+    無反応に見えることがある。
+
+    Appleカレンダーへ渡す場合だけ、
+    現在の画面で直接ICSレスポンスへ遷移する。
+  */
+  form.target = "_self";
   form.style.display = "none";
 
   const icsField =
