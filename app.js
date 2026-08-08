@@ -255,7 +255,8 @@ appleCalendarButton.addEventListener(
       ics,
       `${safeFileName(title)}.ics`
     );
-  }
+
+}
 );
 
 
@@ -1013,12 +1014,8 @@ function openInAppleCalendar(
     `${WORKER_URL}/apple-calendar`;
 
   /*
-    iPhone / iPadのSafariやホーム画面PWAでは
-    target="_blank" のフォーム送信がブロックされ、
-    無反応に見えることがある。
-
-    Appleカレンダーへ渡す場合だけ、
-    現在の画面で直接ICSレスポンスへ遷移する。
+    iPhone / iPadでは新しいタブを使わず、
+    現在の画面で直接ICSレスポンスへ移動する。
   */
   form.target = "_self";
   form.style.display = "none";
@@ -1038,17 +1035,29 @@ function openInAppleCalendar(
 
   form.appendChild(icsField);
   form.appendChild(nameField);
-
   document.body.appendChild(form);
 
-  form.submit();
+  /*
+    Safariにメッセージ描画の時間を与える。
+    先に1フレーム描画させ、その後少し待ってから送信。
+  */
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        form.submit();
+      }, 400);
+    });
+  });
 
   setTimeout(
-    () => form.remove(),
-    1000
+    () => {
+      if (form.isConnected) {
+        form.remove();
+      }
+    },
+    5000
   );
 }
-
 
 function isIOSDevice() {
   const userAgent =
