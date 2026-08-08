@@ -361,3 +361,40 @@ main {
     align-items: center;
   }
 }
+
+
+.ios-apple-card {
+  margin-top: 16px;
+  padding: 15px;
+  border: 1px solid #cdd9e6;
+  border-radius: 13px;
+  background: #f8fafc;
+}
+
+.ios-apple-card h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.ios-apple-lead {
+  margin: 0 0 14px;
+  line-height: 1.55;
+  color: #45586c;
+}
+
+.apple-calendar-button {
+  width: 100%;
+  padding: 15px 12px;
+  border: 0;
+  border-radius: 11px;
+  background: #111;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.apple-calendar-button:disabled {
+  background: #9babc0;
+  cursor: not-allowed;
+}

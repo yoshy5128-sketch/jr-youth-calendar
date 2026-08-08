@@ -29,10 +29,21 @@ const downloadIcsButton = document.getElementById("downloadIcsButton");
 const exportMessage = document.getElementById("exportMessage");
 const bulkAllDayButton = document.getElementById("bulkAllDayButton");
 
+const iosAppleCalendarSection =
+  document.getElementById("iosAppleCalendarSection");
+
+const appleCalendarButton =
+  document.getElementById("appleCalendarButton");
+
+const appleCalendarMessage =
+  document.getElementById("appleCalendarMessage");
+
 let selectedFile = null;
 let sourceDocumentTitle = "";
 
 yearInput.value = new Date().getFullYear();
+
+initializeIOSAppleCalendar();
 
 
 imageInput.addEventListener("change", () => {
@@ -150,6 +161,69 @@ selectAllButton.addEventListener("click", () => {
 deselectAllButton.addEventListener("click", () => {
   setAllEnabled(false);
 });
+
+
+
+appleCalendarButton.addEventListener(
+  "click",
+  () => {
+    hideAppleCalendarMessage();
+
+    const selected =
+      [...document.querySelectorAll(".event-card")]
+        .map(readEventCard)
+        .filter(event => event.enabled);
+
+    if (selected.length === 0) {
+      showAppleCalendarMessage(
+        "追加する予定を1件以上選択してください。",
+        true
+      );
+      return;
+    }
+
+    const invalid =
+      selected.filter(
+        event => !validateEvent(event)
+      );
+
+    if (invalid.length > 0) {
+      showAppleCalendarMessage(
+        `未入力または時刻不明の予定が ${invalid.length} 件あります。` +
+        "時刻を修正するか、終日予定にしてください。",
+        true
+      );
+
+      bulkAllDayButton.classList.remove("hidden");
+      return;
+    }
+
+    const title =
+      calendarTitleInput.value.trim() ||
+      DEFAULT_TITLE;
+
+    const reminder =
+      reminderSelect.value;
+
+    const ics =
+      buildIcs(
+        selected,
+        title,
+        reminder,
+        includeSourceNote.checked
+      );
+
+    openInAppleCalendar(
+      ics,
+      `${safeFileName(title)}.ics`
+    );
+
+    showAppleCalendarMessage(
+      `${selected.length}件の予定をAppleカレンダーへ渡しました。` +
+      " 予定一覧が表示されたら「すべて追加」を選んでください。"
+    );
+  }
+);
 
 
 bulkAllDayButton.addEventListener("click", () => {
@@ -854,6 +928,83 @@ function addDays(dateString, days) {
       .padStart(2, "0");
 
   return `${y}-${m}-${d}`;
+}
+
+
+
+function initializeIOSAppleCalendar() {
+  if (isIOSDevice()) {
+    iosAppleCalendarSection.classList.remove("hidden");
+  } else {
+    iosAppleCalendarSection.classList.add("hidden");
+  }
+}
+
+
+function showAppleCalendarMessage(
+  message,
+  isError = false
+) {
+  appleCalendarMessage.classList.remove("hidden");
+  appleCalendarMessage.textContent = message;
+  appleCalendarMessage.classList.toggle(
+    "error",
+    isError
+  );
+}
+
+
+function hideAppleCalendarMessage() {
+  appleCalendarMessage.classList.add("hidden");
+  appleCalendarMessage.textContent = "";
+  appleCalendarMessage.classList.remove("error");
+}
+
+
+/*
+  iPhone / iPadでは、ICSをWorkerへPOSTし、
+  text/calendarとして返されたレスポンスを新しい画面で開く。
+
+  Blobをダウンロードする方式より、
+  Safari / iOSがカレンダーファイルとして認識しやすい。
+*/
+function openInAppleCalendar(
+  icsText,
+  fileName
+) {
+  const form =
+    document.createElement("form");
+
+  form.method = "POST";
+  form.action =
+    `${WORKER_URL}/apple-calendar`;
+  form.target = "_blank";
+  form.style.display = "none";
+
+  const icsField =
+    document.createElement("textarea");
+
+  icsField.name = "ics";
+  icsField.value = icsText;
+
+  const nameField =
+    document.createElement("input");
+
+  nameField.type = "hidden";
+  nameField.name = "filename";
+  nameField.value = fileName;
+
+  form.appendChild(icsField);
+  form.appendChild(nameField);
+
+  document.body.appendChild(form);
+
+  form.submit();
+
+  setTimeout(
+    () => form.remove(),
+    1000
+  );
 }
 
 

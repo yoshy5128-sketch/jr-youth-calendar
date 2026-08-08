@@ -17,7 +17,7 @@
 
 <header class="app-header">
   <h1>Jrユース・スケジュール</h1>
-  <p>予定表画像から「男子」の予定だけを抽出し、ICSファイルを作成します</p>
+  <p>予定表画像から「男」の予定だけを抽出し、ICSファイルを作成します</p>
 </header>
 
 <main>
@@ -133,7 +133,36 @@
       すべての未記入及び時刻不明予定に終日予定にチェックを入れる
     </button>
 
-    <details class="help-box">
+    
+    <section
+      id="iosAppleCalendarSection"
+      class="ios-apple-card hidden"
+    >
+      <h3>iPhone / iPad</h3>
+
+      <p class="ios-apple-lead">
+        選択した予定をApple標準カレンダーへまとめて渡します。
+      </p>
+
+      <button
+        id="appleCalendarButton"
+        class="apple-calendar-button"
+        type="button"
+      >
+        Apple標準カレンダーへ一括追加
+      </button>
+
+      <div
+        id="appleCalendarMessage"
+        class="export-message hidden"
+      ></div>
+
+      <p class="notice">
+        iPhone側で予定一覧が開いたら「すべて追加」を選んでください。
+      </p>
+    </section>
+
+<details class="help-box">
       <summary>Googleカレンダーへの取り込み方法</summary>
 
       <p>
