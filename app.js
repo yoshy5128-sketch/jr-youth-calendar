@@ -48,6 +48,110 @@ let selectedFile = null;
 let sourceDocumentTitle = "";
 let ocrWorker = null;
 
+function isIOSDevice() {
+  const userAgent =
+    navigator.userAgent || "";
+
+  const platform =
+    navigator.platform || "";
+
+  return (
+    /iPhone|iPad|iPod/i.test(userAgent) ||
+    (
+      platform === "MacIntel" &&
+      navigator.maxTouchPoints > 1
+    )
+  );
+}
+
+
+function initializeIOSAppleCalendar() {
+  if (
+    !iosAppleCalendarSection
+  ) {
+    return;
+  }
+
+  if (isIOSDevice()) {
+    iosAppleCalendarSection.classList.remove("hidden");
+  } else {
+    iosAppleCalendarSection.classList.add("hidden");
+  }
+}
+
+
+function showAppleCalendarMessage(
+  message,
+  isError = false
+) {
+  if (
+    !appleCalendarMessage
+  ) {
+    return;
+  }
+
+  appleCalendarMessage.classList.remove("hidden");
+  appleCalendarMessage.textContent = message;
+
+  appleCalendarMessage.classList.toggle(
+    "error",
+    isError
+  );
+}
+
+
+function hideAppleCalendarMessage() {
+  if (
+    !appleCalendarMessage
+  ) {
+    return;
+  }
+
+  appleCalendarMessage.classList.add("hidden");
+  appleCalendarMessage.textContent = "";
+  appleCalendarMessage.classList.remove("error");
+}
+
+
+function openInAppleCalendar(
+  icsText,
+  fileName
+) {
+  const form =
+    document.createElement("form");
+
+  form.method = "POST";
+  form.action =
+    `${WORKER_URL}/apple-calendar`;
+
+  /*
+    iPhone / iPadでは新しいタブを使わず、
+    現在画面でICSレスポンスを開く。
+  */
+  form.target = "_self";
+  form.style.display = "none";
+
+  const icsField =
+    document.createElement("textarea");
+
+  icsField.name = "ics";
+  icsField.value = icsText;
+
+  const nameField =
+    document.createElement("input");
+
+  nameField.type = "hidden";
+  nameField.name = "filename";
+  nameField.value = fileName;
+
+  form.appendChild(icsField);
+  form.appendChild(nameField);
+  document.body.appendChild(form);
+
+  form.submit();
+}
+
+
 yearInput.value = new Date().getFullYear();
 
 initializeIOSAppleCalendar();

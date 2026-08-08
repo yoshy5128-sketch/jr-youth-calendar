@@ -1,57 +1,28 @@
-Jrユース・スケジュール v14
-ブラウザ内OCR試験版（Gemini API不使用）
+Jrユース・スケジュール v14.1
+ブラウザ内OCR 起動修正版
 ==============================================
 
-目的:
-Geminiの無料枠・レート制限から完全に離れるため、
-画像認識をTesseract.jsによる端末内OCRへ置き換えました。
+v14の不具合:
+app.js起動時に initializeIOSAppleCalendar() を呼んでいましたが、
+関数本体が欠落していたためJavaScriptがそこで停止していました。
 
-特徴:
-- Gemini API 不使用
-- APIキー不要
-- Google Cloud不要
-- クレジットカード不要
-- OCR回数制限なし
-- PC / Android / iPhone対応
-- Appleカレンダー機能は既存Workerを利用
-- ICS出力は従来どおり
+その結果:
+- 画像を選択してもプレビューされない
+- OCR解析ボタンも有効化されない
+- その他のボタンイベントも登録されない
 
-初回:
-Tesseract.js本体と日本語OCRデータをCDNから読み込みます。
-初回だけ時間がかかります。
-その後はブラウザキャッシュが効く場合があります。
+v14.1:
+- initializeIOSAppleCalendar を復元
+- Appleカレンダー関連ヘルパーも復元
+- service-workerキャッシュを v14-1 に更新
+- OCR方式はv14のまま
+- Gemini APIは使用しない
+- Cloudflare Worker変更不要
 
-重要:
-これは試験版です。
-GeminiのようにAIが表を意味理解するのではなく、
-OCR文字の座標からプログラムで
-「日程 / 場所 / 枠 / 時間 / 区分 / 鍵開 / 鍵閉」
-を割り当てます。
-
-予定表レイアウトが固定なら、
-列位置を合わせ込むことで精度改善が可能です。
-
-今回の初期列割合:
-date     0.00 - 0.13
-location 0.13 - 0.29
-team     0.29 - 0.45
-time     0.45 - 0.64
-category 0.64 - 0.73
-keyOpen  0.73 - 0.86
-keyClose 0.86 - 1.00
-
-結果画面の
-「OCR読み取り内容を確認」
-を開くと、
-OCR全文と抽出JSONを確認できます。
-
-更新方法:
-GitHub側のファイルを上書きしてCommit。
-
-Cloudflare Worker:
-変更不要です。
-今使っているAppleカレンダー対応Workerをそのまま使用してください。
+GitHub:
+app.js と service-worker.js を最低限上書き。
+確実に揃えるならZIP一式を上書き。
 
 公開後:
-?v=14
-を付けて確認してください。
+?v=14.1
+で開いて確認してください。
