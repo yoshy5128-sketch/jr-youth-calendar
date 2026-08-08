@@ -115,25 +115,6 @@ analyzeButton.addEventListener("click", async () => {
     }
 
     if (!response.ok || !data.ok) {
-      if (
-        response.status === 429 &&
-        data.retryAfterSeconds
-      ) {
-        const error =
-          new Error(
-            data.details ||
-            data.error ||
-            "Gemini APIの利用上限に達しました。"
-          );
-
-        error.retryAfterSeconds =
-          Number(
-            data.retryAfterSeconds
-          );
-
-        throw error;
-      }
-
       throw new Error(
         data.details ||
         data.error ||
@@ -152,28 +133,13 @@ analyzeButton.addEventListener("click", async () => {
   } catch (error) {
     console.error(error);
 
-    if (
-      error?.retryAfterSeconds
-    ) {
-      startRateLimitCountdown(
-        error.retryAfterSeconds
-      );
-      return;
-    }
-
     showStatus(
       "解析できませんでした。\n" +
       (error instanceof Error ? error.message : String(error)),
       true
     );
-
-    analyzeButton.disabled = false;
   } finally {
-    if (
-      !analyzeButton.dataset.rateLimited
-    ) {
-      analyzeButton.disabled = false;
-    }
+    analyzeButton.disabled = false;
   }
 });
 
@@ -198,66 +164,69 @@ deselectAllButton.addEventListener("click", () => {
 
 
 
-appleCalendarButton.addEventListener(
-  "click",
-  () => {
-    hideAppleCalendarMessage();
+appleCalendarButton.addEventListener("click", () => {
+  hideAppleCalendarMessage();
 
-    const selected =
-      [...document.querySelectorAll(".event-card")]
-        .map(readEventCard)
-        .filter(event => event.enabled);
+  const selected =
+    [...document.querySelectorAll(".event-card")]
+      .map(readEventCard)
+      .filter(event => event.enabled);
 
-    if (selected.length === 0) {
-      showAppleCalendarMessage(
-        "追加する予定を1件以上選択してください。",
-        true
-      );
-      return;
-    }
-
-    const invalid =
-      selected.filter(
-        event => !validateEvent(event)
-      );
-
-    if (invalid.length > 0) {
-      showAppleCalendarMessage(
-        `未入力または時刻不明の予定が ${invalid.length} 件あります。` +
-        "時刻を修正するか、終日予定にしてください。",
-        true
-      );
-
-      bulkAllDayButton.classList.remove("hidden");
-      return;
-    }
-
-    const title =
-      calendarTitleInput.value.trim() ||
-      DEFAULT_TITLE;
-
-    const reminder =
-      reminderSelect.value;
-
-    const ics =
-      buildIcs(
-        selected,
-        title,
-        reminder,
-        includeSourceNote.checked
-      );
-
+  if (selected.length === 0) {
     showAppleCalendarMessage(
-      `${selected.length}件の予定をAppleカレンダーへ渡しています…`
+      "追加する予定を1件以上選択してください。",
+      true
+    );
+    return;
+  }
+
+  const invalid =
+    selected.filter(event => !validateEvent(event));
+
+  if (invalid.length > 0) {
+    showAppleCalendarMessage(
+      `未入力または時刻不明の予定が ${invalid.length} 件あります。` +
+      "時刻を修正するか、終日予定にしてください。",
+      true
     );
 
-    openInAppleCalendar(
-      ics,
-      `${safeFileName(title)}.ics`
+    bulkAllDayButton.classList.remove("hidden");
+    return;
+  }
+
+  const title =
+    calendarTitleInput.value.trim() ||
+    DEFAULT_TITLE;
+
+  const reminder =
+    reminderSelect.value;
+
+  const ics =
+    buildIcs(
+      selected,
+      title,
+      reminder,
+      includeSourceNote.checked
     );
 
-}
-);
+  showAppleCalendarMessage(
+    `${selected.length}件の予定をAppleカレンダーへ渡しています…`
+  );
+
+  /*
+    画面表示を確実に描画してから遷移
+  */
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        openInAppleCalendar(
+          ics,
+          `${safeFileName(title)}.ics`
+        );
+      }, 500);
+    });
+  });
+});
 
 
 bulkAllDayButton.addEventListener("click", () => {
@@ -319,7 +288,7 @@ bulkAllDayButton.addEventListener("click", () => {
 });
 
 
-downloadIcsButton.addEventListener("click", async () => {
+downloadIcsButton.addEventListener("click", () => {
   hideExportMessage();
 
   const cards = [...document.querySelectorAll(".event-card")];
@@ -373,35 +342,15 @@ downloadIcsButton.addEventListener("click", async () => {
       includeSourceNote.checked
     );
 
-  try {
-    const result = await downloadTextFile(
-      ics,
-      `${safeFileName(title)}.ics`,
-      "text/calendar;charset=utf-8"
-    );
+  downloadTextFile(
+    ics,
+    `${safeFileName(title)}.ics`,
+    "text/calendar;charset=utf-8"
+  );
 
-    if (result === "shared") {
-      showExportMessage(
-        `${selected.length}件の予定をICSファイルにまとめました。` +
-        " iPhone/iPadでは共有画面から「“ファイル”に保存」を選んでください。"
-      );
-    } else if (result === "cancelled") {
-      showExportMessage(
-        "ICSファイルの共有をキャンセルしました。"
-      );
-    } else {
-      showExportMessage(
-        `${selected.length}件の予定をICSファイルにまとめました。`
-      );
-    }
-  } catch (error) {
-    console.error(error);
-
-    showExportMessage(
-      "ICSファイルを出力できませんでした。もう一度お試しください。",
-      true
-    );
-  }
+  showExportMessage(
+    `${selected.length}件の予定をICSファイルにまとめました。`
+  );
 });
 
 
@@ -699,6 +648,93 @@ function detectDuplicates() {
   ZもTZIDも付けないため、Googleカレンダー側がGMT+00表示でも
   予定表に書かれた14:00を14:00として取り込む。
 */
+
+function isIOSDevice() {
+  const userAgent =
+    navigator.userAgent || "";
+
+  const platform =
+    navigator.platform || "";
+
+  return (
+    /iPhone|iPad|iPod/i.test(userAgent) ||
+    (
+      platform === "MacIntel" &&
+      navigator.maxTouchPoints > 1
+    )
+  );
+}
+
+
+function initializeIOSAppleCalendar() {
+  if (isIOSDevice()) {
+    iosAppleCalendarSection.classList.remove("hidden");
+  } else {
+    iosAppleCalendarSection.classList.add("hidden");
+  }
+}
+
+
+function showAppleCalendarMessage(
+  message,
+  isError = false
+) {
+  appleCalendarMessage.classList.remove("hidden");
+  appleCalendarMessage.textContent = message;
+  appleCalendarMessage.classList.toggle(
+    "error",
+    isError
+  );
+}
+
+
+function hideAppleCalendarMessage() {
+  appleCalendarMessage.classList.add("hidden");
+  appleCalendarMessage.textContent = "";
+  appleCalendarMessage.classList.remove("error");
+}
+
+
+function openInAppleCalendar(
+  icsText,
+  fileName
+) {
+  const form =
+    document.createElement("form");
+
+  form.method = "POST";
+  form.action =
+    `${WORKER_URL}/apple-calendar`;
+
+  /*
+    iOS Safari/PWAでは _blank を使わない。
+    現在の画面で直接 text/calendar を開く。
+  */
+  form.target = "_self";
+  form.style.display = "none";
+
+  const icsField =
+    document.createElement("textarea");
+
+  icsField.name = "ics";
+  icsField.value = icsText;
+
+  const nameField =
+    document.createElement("input");
+
+  nameField.type = "hidden";
+  nameField.name = "filename";
+  nameField.value = fileName;
+
+  form.appendChild(icsField);
+  form.appendChild(nameField);
+
+  document.body.appendChild(form);
+
+  form.submit();
+}
+
+
 function buildIcs(
   events,
   title,
@@ -965,234 +1001,36 @@ function addDays(dateString, days) {
 }
 
 
-
-function initializeIOSAppleCalendar() {
-  if (isIOSDevice()) {
-    iosAppleCalendarSection.classList.remove("hidden");
-  } else {
-    iosAppleCalendarSection.classList.add("hidden");
-  }
-}
-
-
-function showAppleCalendarMessage(
-  message,
-  isError = false
-) {
-  appleCalendarMessage.classList.remove("hidden");
-  appleCalendarMessage.textContent = message;
-  appleCalendarMessage.classList.toggle(
-    "error",
-    isError
-  );
-}
-
-
-function hideAppleCalendarMessage() {
-  appleCalendarMessage.classList.add("hidden");
-  appleCalendarMessage.textContent = "";
-  appleCalendarMessage.classList.remove("error");
-}
-
-
-/*
-  iPhone / iPadでは、ICSをWorkerへPOSTし、
-  text/calendarとして返されたレスポンスを新しい画面で開く。
-
-  Blobをダウンロードする方式より、
-  Safari / iOSがカレンダーファイルとして認識しやすい。
-*/
-function openInAppleCalendar(
-  icsText,
-  fileName
-) {
-  const form =
-    document.createElement("form");
-
-  form.method = "POST";
-  form.action =
-    `${WORKER_URL}/apple-calendar`;
-
-  /*
-    iPhone / iPadでは新しいタブを使わず、
-    現在の画面で直接ICSレスポンスへ移動する。
-  */
-  form.target = "_self";
-  form.style.display = "none";
-
-  const icsField =
-    document.createElement("textarea");
-
-  icsField.name = "ics";
-  icsField.value = icsText;
-
-  const nameField =
-    document.createElement("input");
-
-  nameField.type = "hidden";
-  nameField.name = "filename";
-  nameField.value = fileName;
-
-  form.appendChild(icsField);
-  form.appendChild(nameField);
-  document.body.appendChild(form);
-
-  /*
-    Safariにメッセージ描画の時間を与える。
-    先に1フレーム描画させ、その後少し待ってから送信。
-  */
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        form.submit();
-      }, 400);
-    });
-  });
-
-  setTimeout(
-    () => {
-      if (form.isConnected) {
-        form.remove();
-      }
-    },
-    5000
-  );
-}
-
-function isIOSDevice() {
-  const userAgent =
-    navigator.userAgent || "";
-
-  const platform =
-    navigator.platform || "";
-
-  /*
-    iPhone / iPad / iPod。
-    iPadOSはデスクトップ表示時にMacIntelになる場合があるため
-    touch pointsも確認する。
-  */
-  return (
-    /iPhone|iPad|iPod/i.test(userAgent) ||
-    (
-      platform === "MacIntel" &&
-      navigator.maxTouchPoints > 1
-    )
-  );
-}
-
-
-async function downloadTextFile(
+function downloadTextFile(
   text,
   fileName,
   mimeType
 ) {
-  /*
-    iPhone / iPadだけはSafari/PWAの<a download>に頼らず、
-    iOS標準の共有シートへICSファイルを渡す。
-
-    PC / Androidは従来どおり直接ダウンロード。
-  */
-  if (
-    isIOSDevice() &&
-    typeof navigator.share === "function"
-  ) {
-    const file =
-      new File(
-        [text],
-        fileName,
-        {
-          type:
-            mimeType ||
-            "text/calendar"
-        }
-      );
-
-    const shareData = {
-      files: [file],
-      title: fileName
-    };
-
-    const canShareFiles =
-      typeof navigator.canShare !== "function" ||
-      navigator.canShare(shareData);
-
-    if (canShareFiles) {
-      try {
-        await navigator.share(
-          shareData
-        );
-
-        return "shared";
-      } catch (error) {
-        /*
-          ユーザーが共有画面を閉じただけならエラー扱いにしない。
-        */
-        if (
-          error &&
-          error.name ===
-            "AbortError"
-        ) {
-          return "cancelled";
-        }
-
-        console.warn(
-          "iOS share failed. Falling back to normal download.",
-          error
-        );
-      }
-    }
-  }
-
-  /*
-    PC / Android、
-    またはiOS共有が利用できなかった場合のフォールバック。
-  */
   const blob =
     new Blob(
       [text],
-      {
-        type:
-          mimeType ||
-          "text/calendar;charset=utf-8"
-      }
+      { type: mimeType }
     );
 
   const url =
-    URL.createObjectURL(
-      blob
-    );
+    URL.createObjectURL(blob);
 
   const anchor =
-    document.createElement(
-      "a"
-    );
+    document.createElement("a");
 
-  anchor.href =
-    url;
+  anchor.href = url;
+  anchor.download = fileName;
 
-  anchor.download =
-    fileName;
-
-  anchor.rel =
-    "noopener";
-
-  document.body.appendChild(
-    anchor
-  );
-
+  document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
 
   setTimeout(
-    () =>
-      URL.revokeObjectURL(
-        url
-      ),
-    3000
+    () => URL.revokeObjectURL(url),
+    1000
   );
-
-  return "downloaded";
 }
+
 
 function safeFileName(value) {
   return (
@@ -1208,54 +1046,6 @@ function normalizeKey(value) {
   return String(value || "")
     .replace(/\s+/g, "")
     .toLowerCase();
-}
-
-
-
-function startRateLimitCountdown(seconds) {
-  let remaining =
-    Math.max(
-      1,
-      Math.ceil(
-        Number(seconds) || 60
-      )
-    );
-
-  analyzeButton.disabled = true;
-  analyzeButton.dataset.rateLimited = "true";
-
-  const update = () => {
-    showStatus(
-      "Gemini APIの短時間利用上限に達しました。\n" +
-      `${remaining}秒後に再試行できます。`,
-      true
-    );
-
-    analyzeButton.textContent =
-      `再試行まで ${remaining}秒`;
-
-    remaining--;
-
-    if (remaining < 0) {
-      clearInterval(timer);
-
-      delete analyzeButton.dataset.rateLimited;
-      analyzeButton.disabled = false;
-      analyzeButton.textContent = "画像を解析する";
-
-      showStatus(
-        "再試行できます。もう一度「画像を解析する」を押してください。"
-      );
-    }
-  };
-
-  update();
-
-  const timer =
-    setInterval(
-      update,
-      1000
-    );
 }
 
 
