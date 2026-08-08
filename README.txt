@@ -1,75 +1,48 @@
-Jrユース・スケジュール v9
-Apple標準カレンダー一括追加版
+Jrユース・スケジュール v10
+Quota対策 + Apple標準カレンダー版
 ==========================================
 
-Google Cloud / Google Calendar APIは使いません。
-クレジットカード登録も不要です。
+今回の変更理由:
+Gemini API無料枠の短時間レート制限
+limit: 20
+に到達していました。
 
-【iPhone / iPad】
-結果確認後に
-「Apple標準カレンダーへ一括追加」
-ボタンを表示します。
+v7～v9は1枚の画像を2回解析していたため、
+1回の操作でGemini APIを2回消費していました。
 
-押すと:
-1. 選択予定からICSを生成
-2. Cloudflare WorkerへICSをPOST
-3. Workerが text/calendar として即時返却
-4. Safari / iOSへカレンダーファイルとして渡す
-5. iPhone側の予定一覧で「すべて追加」
+v10:
+- Gemini呼び出しを1回に削減
+- 1回のプロンプト内で
+  全行抽出
+  漏れ自己チェック
+  鍵当番の横一列チェック
+  をまとめて実行
+- API消費量を約半分に削減
 
-ICSをサーバーに保存する処理はありません。
-Workerは受け取ったICSをその場でレスポンスとして返すだけです。
+429 Rate Limit:
+- 連続再試行しない
+- Geminiが返したretry時間を読み取る
+- 画面にカウントダウン表示
+- カウント終了後に再度解析可能
 
-【PC / Android】
-従来のICSファイル出力はそのままです。
+維持:
+- 男/男子のみ最終抽出
+- 鍵当番の上下行誤混入防止を強く指示
+- 時刻未定→終日
+- PC/Android ICS出力
+- iPhone/iPad Apple標準カレンダー一括追加
+- Google Cloud不要
 
-【時刻】
-v7の固定時刻方式を維持しています。
+GitHub:
+全ファイルを上書きしてCommit
 
-【時刻未定】
-終日予定として扱えます。
-一括終日化した予定は
-【時間未定】Jrユース・スケジュール
-となります。
+Cloudflare:
+worker.jsを丸ごと貼り替えてDeploy
 
-【鍵当番】
-v7の厳格な行位置チェックを維持します。
+Worker URLで:
+v10-single-pass-quota-safe
+と表示されれば更新完了。
 
-------------------------------------------------
-GitHub
-------------------------------------------------
-
-以下を上書き:
-- index.html
-- style.css
-- app.js
-- manifest.json
-- service-worker.js
-- .github/workflows/deploy.yml
-
-------------------------------------------------
-Cloudflare Worker
-------------------------------------------------
-
-worker.jsを丸ごと貼り替えてDeployしてください。
-
-Worker URLを直接開き、
-version が
-
-v9-apple-calendar-direct
-
-になれば更新済みです。
-
-------------------------------------------------
-確認
-------------------------------------------------
-
-GitHub Actionsが緑になったあと、
-iPhoneでは
-
-https://yoshy5128-sketch.github.io/jr-youth-calendar/?v=9
-
-で開いてください。
-
-「Apple標準カレンダーへ一括追加」が
-iPhone/iPadだけに表示されます。
+iPhone:
+?v=10
+を付けて開くと新しいキャッシュを確認しやすいです。

@@ -115,6 +115,25 @@ analyzeButton.addEventListener("click", async () => {
     }
 
     if (!response.ok || !data.ok) {
+      if (
+        response.status === 429 &&
+        data.retryAfterSeconds
+      ) {
+        const error =
+          new Error(
+            data.details ||
+            data.error ||
+            "Gemini APIの利用上限に達しました。"
+          );
+
+        error.retryAfterSeconds =
+          Number(
+            data.retryAfterSeconds
+          );
+
+        throw error;
+      }
+
       throw new Error(
         data.details ||
         data.error ||
@@ -133,13 +152,28 @@ analyzeButton.addEventListener("click", async () => {
   } catch (error) {
     console.error(error);
 
+    if (
+      error?.retryAfterSeconds
+    ) {
+      startRateLimitCountdown(
+        error.retryAfterSeconds
+      );
+      return;
+    }
+
     showStatus(
       "解析できませんでした。\n" +
       (error instanceof Error ? error.message : String(error)),
       true
     );
-  } finally {
+
     analyzeButton.disabled = false;
+  } finally {
+    if (
+      !analyzeButton.dataset.rateLimited
+    ) {
+      analyzeButton.disabled = false;
+    }
   }
 });
 
@@ -1157,6 +1191,54 @@ function normalizeKey(value) {
   return String(value || "")
     .replace(/\s+/g, "")
     .toLowerCase();
+}
+
+
+
+function startRateLimitCountdown(seconds) {
+  let remaining =
+    Math.max(
+      1,
+      Math.ceil(
+        Number(seconds) || 60
+      )
+    );
+
+  analyzeButton.disabled = true;
+  analyzeButton.dataset.rateLimited = "true";
+
+  const update = () => {
+    showStatus(
+      "Gemini APIの短時間利用上限に達しました。\n" +
+      `${remaining}秒後に再試行できます。`,
+      true
+    );
+
+    analyzeButton.textContent =
+      `再試行まで ${remaining}秒`;
+
+    remaining--;
+
+    if (remaining < 0) {
+      clearInterval(timer);
+
+      delete analyzeButton.dataset.rateLimited;
+      analyzeButton.disabled = false;
+      analyzeButton.textContent = "画像を解析する";
+
+      showStatus(
+        "再試行できます。もう一度「画像を解析する」を押してください。"
+      );
+    }
+  };
+
+  update();
+
+  const timer =
+    setInterval(
+      update,
+      1000
+    );
 }
 
 
